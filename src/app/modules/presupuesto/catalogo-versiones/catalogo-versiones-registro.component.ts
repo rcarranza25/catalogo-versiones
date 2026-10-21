@@ -78,7 +78,7 @@ type VersionVinculadaDemo = { id: string; anio: string; proceso: string; codigo:
                 <siaf-checkbox label="Editable" [checked]="editable()" (checkedChange)="editable.set($event)" />
                 <siaf-checkbox label="Pliego" [checked]="pliego()" (checkedChange)="pliego.set($event)" />
                 <siaf-checkbox label="Vigente" [checked]="vigente()" (checkedChange)="vigente.set($event)" />
-                <siaf-checkbox label="Es definitivo" [checked]="oficial()" (checkedChange)="oficial.set($event)" />
+                <siaf-checkbox label="Definitiva" [checked]="oficial()" (checkedChange)="oficial.set($event)" />
                 <siaf-checkbox label="Disponible" [checked]="disponible()" (checkedChange)="disponible.set($event)" />
               </div>
             </section>

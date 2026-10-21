@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 
 import { BreadcrumbComponent } from '../../../shared/components/breadcrumb/breadcrumb.component';
 import { DocumentHistoryPanelComponent, DocumentHistorySummary } from '../../../shared/components/document-history-panel/document-history-panel.component';
+import { FilterPillComponent } from '../../../shared/components/filter-pill/filter-pill.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 import { RecordsSearchToolbarComponent } from '../../../shared/components/records-search-toolbar/records-search-toolbar.component';
@@ -26,7 +27,7 @@ type VersionDocumentRow = { id: number; documento: string; numero: string; tipoA
 @Component({
   selector: 'siaf-catalogo-versiones-bandeja',
   standalone: true,
-  imports: [BreadcrumbComponent, ButtonComponent, ColumnVisibilityPanelComponent, DocumentHistoryPanelComponent, IconComponent, IconDropdownMenuComponent, PageHeaderComponent, PaginationComponent, RecordsSearchToolbarComponent, RecordsTabsComponent, SnackbarComponent, SideNavComponent, StatusTagComponent, TableControlsComponent, DateTimePickerComponent, TextFieldComponent, TooltipDirective],
+  imports: [BreadcrumbComponent, ButtonComponent, ColumnVisibilityPanelComponent, DocumentHistoryPanelComponent, FilterPillComponent, IconComponent, IconDropdownMenuComponent, PageHeaderComponent, PaginationComponent, RecordsSearchToolbarComponent, RecordsTabsComponent, SnackbarComponent, SideNavComponent, StatusTagComponent, TableControlsComponent, DateTimePickerComponent, TextFieldComponent, TooltipDirective],
   template: `
     <main class="min-h-[calc(100vh-56px)] overflow-x-hidden bg-[var(--sys-color-bg-surfaces-surface-lowest)] text-text">
       <div class="w-full">
@@ -49,11 +50,20 @@ type VersionDocumentRow = { id: number; documento: string; numero: string; tipoA
               <div class="flex min-w-0 flex-col gap-siaf-xs p-siaf-md">
                 <siaf-records-search-toolbar [value]="documentSearch()" placeholder="Buscar" (valueChange)="documentSearch.set($any($event))">
                   <ng-container actions>
-                    <siaf-button variant="text" icon="layers" [iconOnly]="true" ariaLabel="Capas" />
-                    <siaf-button variant="text" icon="star_border" [iconOnly]="true" ariaLabel="Favoritos" />
+                    <span class="inline-flex size-9 items-center justify-center text-text" role="img" aria-label="Agrupación"><siaf-icon name="layers" [size]="24" /></span>
+                    <span class="inline-flex size-9 items-center justify-center text-text" role="img" aria-label="Favoritos"><siaf-icon name="star_border" [size]="24" /></span>
                     <siaf-icon-dropdown-menu icon="more_vert" ariaLabel="Más opciones" [items]="[]" />
                   </ng-container>
                 </siaf-records-search-toolbar>
+
+                <div class="flex flex-wrap items-center gap-siaf-xs" aria-label="Filtros de documentos">
+                  <siaf-filter-pill label="Estado" [options]="documentStatusOptions" [selectedValue]="documentStatusFilter()" (selectedValueChange)="documentStatusFilter.set($event)" />
+                  <siaf-filter-pill label="Tipo de acción" [options]="documentActionOptions" [selectedValue]="documentActionFilter()" (selectedValueChange)="documentActionFilter.set($event)" />
+                  @if (documentExtraFilterVisible()) {
+                    <siaf-filter-pill label="Sistema" [options]="documentSystemOptions" [selectedValue]="documentSystemFilter()" (selectedValueChange)="documentSystemFilter.set($event)" />
+                  }
+                  <siaf-icon-dropdown-menu icon="add" ariaLabel="Agregar filtro de documentos" [items]="documentAdditionalFilters" (selected)="agregarFiltroDocumento($event)" />
+                </div>
 
                 <div class="flex items-center justify-between px-siaf-sm py-siaf-xs">
                   <input class="size-4 accent-[var(--sys-color-icon-states-enabled)]" type="checkbox" aria-label="Seleccionar documentos" />
@@ -115,10 +125,20 @@ type VersionDocumentRow = { id: number; documento: string; numero: string; tipoA
             <div class="flex min-w-0 flex-col gap-siaf-xs p-siaf-md">
               <siaf-records-search-toolbar [value]="search()" placeholder="Buscar" (valueChange)="search.set($any($event))">
                 <ng-container actions>
-                  <siaf-button variant="text" icon="filter_list" [iconOnly]="true" ariaLabel="Mostrar filtros" [activated]="filtrosPanelAbierto()" (click)="abrirFiltros()" />
+                  <span class="inline-flex size-9 items-center justify-center text-text" role="img" aria-label="Agrupación"><siaf-icon name="layers" [size]="24" /></span>
+                  <span class="inline-flex size-9 items-center justify-center text-text" role="img" aria-label="Favoritos"><siaf-icon name="star_border" [size]="24" /></span>
                   <siaf-icon-dropdown-menu icon="more_vert" ariaLabel="Más opciones" [items]="optionsMenu" (selected)="manejarMasOpciones($event)" />
                 </ng-container>
               </siaf-records-search-toolbar>
+
+              <div class="flex flex-wrap items-center gap-siaf-xs" aria-label="Filtros de registros">
+                <siaf-filter-pill label="Estado" [options]="recordStatusOptions" [selectedValue]="estado()" (selectedValueChange)="estado.set($event)" />
+                <siaf-filter-pill label="Año" [options]="recordYearOptions()" [selectedValue]="anio()" (selectedValueChange)="anio.set($event)" />
+                @if (recordExtraFilterVisible()) {
+                  <siaf-filter-pill label="Proceso" [options]="recordProcessOptions()" [selectedValue]="procesoFiltro()" (selectedValueChange)="procesoFiltro.set($event)" />
+                }
+                <siaf-icon-dropdown-menu icon="add" ariaLabel="Agregar filtro de registros" [items]="recordAdditionalFilters" (selected)="agregarFiltroRegistro($event)" />
+              </div>
 
               <siaf-table-controls
                 [checked]="allSelected()" [indeterminate]="someSelected()" [selectedCount]="selectedIds().size"
@@ -137,7 +157,7 @@ type VersionDocumentRow = { id: number; documento: string; numero: string; tipoA
                       @if (columnasExtendidas()) { <th colspan="4" class="border-r border-[var(--sys-color-divider-strong)] px-siaf-md text-center">Versión vinculada</th> }
                       <th rowspan="2" class="w-[120px] px-siaf-md text-center">Estado</th><th rowspan="2" class="w-[120px] px-siaf-md text-center">Fecha desde</th><th rowspan="2" class="w-[120px] px-siaf-md text-center">Fecha hasta</th>
                     </tr>
-                    <tr class="h-10 border-b border-[var(--sys-color-divider-default)]"><th class="w-[110px] border-l border-[var(--sys-color-divider-strong)] px-siaf-md text-center">Editable</th><th class="w-[110px] px-siaf-md text-center">Pliego</th><th class="w-[110px] px-siaf-md text-center">Vigente</th><th class="w-[110px] px-siaf-md text-center">Es definitivo</th><th class="w-[110px] border-r border-[var(--sys-color-divider-strong)] px-siaf-md text-center">Disponible</th>@if (columnasExtendidas()) { <th class="w-[95px] px-siaf-md text-center">Año</th><th class="w-[230px] px-siaf-md text-center">Proceso</th><th class="w-[95px] px-siaf-md text-center">Código</th><th class="w-[220px] border-r border-[var(--sys-color-divider-strong)] px-siaf-md text-center">Nombre</th> }</tr>
+                    <tr class="h-10 border-b border-[var(--sys-color-divider-default)]"><th class="w-[110px] border-l border-[var(--sys-color-divider-strong)] px-siaf-md text-center">Editable</th><th class="w-[110px] px-siaf-md text-center">Pliego</th><th class="w-[110px] px-siaf-md text-center">Vigente</th><th class="w-[110px] px-siaf-md text-center">Definitiva</th><th class="w-[110px] border-r border-[var(--sys-color-divider-strong)] px-siaf-md text-center">Disponible</th>@if (columnasExtendidas()) { <th class="w-[95px] px-siaf-md text-center">Año</th><th class="w-[230px] px-siaf-md text-center">Proceso</th><th class="w-[95px] px-siaf-md text-center">Código</th><th class="w-[220px] border-r border-[var(--sys-color-divider-strong)] px-siaf-md text-center">Nombre</th> }</tr>
                   </thead>
                   <tbody>
                     @for (row of filteredRows(); track row.id) {
@@ -188,7 +208,7 @@ type VersionDocumentRow = { id: number; documento: string; numero: string; tipoA
             <siaf-input type="select" label="Editable" [autoSuccess]="false" [options]="opcionesCondicion" [value]="editableFiltro()" (valueChange)="editableFiltro.set($any($event))" />
             <siaf-input type="select" label="Pliego" [autoSuccess]="false" [options]="opcionesCondicion" [value]="pliegoFiltro()" (valueChange)="pliegoFiltro.set($any($event))" />
             <siaf-input type="select" label="Vigente" [autoSuccess]="false" [options]="opcionesCondicion" [value]="vigenteFiltro()" (valueChange)="vigenteFiltro.set($any($event))" />
-            <siaf-input type="select" label="Es definitivo" [autoSuccess]="false" [options]="opcionesCondicion" [value]="oficialFiltro()" (valueChange)="oficialFiltro.set($any($event))" />
+          <siaf-input type="select" label="Definitiva" [autoSuccess]="false" [options]="opcionesCondicion" [value]="oficialFiltro()" (valueChange)="oficialFiltro.set($any($event))" />
             <siaf-input type="select" label="Disponible" [autoSuccess]="false" [options]="opcionesCondicion" [value]="disponibleFiltro()" (valueChange)="disponibleFiltro.set($any($event))" />
           </section>
         </div>
@@ -249,6 +269,11 @@ export class CatalogoVersionesBandejaComponent {
   readonly filtrosPanelAbierto = signal(false);
   readonly activeTab = signal<'documents' | 'records'>(history.state?.['activeTab'] === 'records' ? 'records' : 'documents');
   readonly documentSearch = signal('');
+  readonly documentStatusFilter = signal('');
+  readonly documentActionFilter = signal('');
+  readonly documentSystemFilter = signal('');
+  readonly documentExtraFilterVisible = signal(false);
+  readonly recordExtraFilterVisible = signal(false);
   readonly documentHistoryOpen = signal(false);
   readonly documentHistorySummary = signal<DocumentHistorySummary>({ solicitudId: '', document: '', number: '', actionType: '' });
   readonly columnasPanelAbierto = signal(false);
@@ -260,10 +285,18 @@ export class CatalogoVersionesBandejaComponent {
   readonly breadcrumbs = [{ label: 'Inicio', href: '/panel' }, { label: 'Procesos presupuesto' }, { label: 'Clasificadores y catálogos' }, { label: 'Catálogo de Versiones' }];
   /** Esta pantalla representa el listado de registros; no crea documentos desde el catálogo. */
   readonly tabsItems: RecordsTabItem[] = [{ id: 'documents', label: 'Documentos' }, { id: 'records', label: 'Registros' }];
-  readonly optionsMenu = [{ label: 'Configurar columnas', value: 'columns' }];
+  readonly optionsMenu = [{ label: 'Ocultar o mostrar columnas', value: 'columns' }];
+  readonly documentStatusOptions = [{ label: 'Aceptado', value: 'Aceptado' }];
+  readonly documentActionOptions = [{ label: 'Creación', value: 'Creación' }];
+  readonly documentSystemOptions = [{ label: 'Presupuesto', value: 'Presupuesto' }];
+  readonly documentAdditionalFilters = [{ label: 'Sistema', value: 'system' }];
+  readonly recordStatusOptions = [{ label: 'Todos', value: '' }, { label: 'Activo', value: 'Activo' }, { label: 'Inactivo', value: 'Inactivo' }];
+  readonly recordYearOptions = computed(() => [...new Set(this.displayedRows().map(row => row.anio))].map(year => ({ label: year, value: year })));
+  readonly recordProcessOptions = computed(() => [...new Set(this.displayedRows().map(row => row.proceso))].map(process => ({ label: process, value: process })));
+  readonly recordAdditionalFilters = [{ label: 'Proceso', value: 'process' }];
   readonly seccionesColumnas: ColumnVisibilityPanelSection[] = [
     { label: 'Campos generales', locked: true, columns: this.columnas(['anio', 'Año'], ['proceso', 'Proceso'], ['codigo', 'Código'], ['nombre', 'Nombre']) },
-    { label: 'Condiciones de versión', columns: this.columnas(['editable', 'Editable'], ['pliego', 'Pliego'], ['vigente', 'Vigente'], ['oficial', 'Es definitivo'], ['disponible', 'Disponible']) },
+    { label: 'Condiciones de versión', columns: this.columnas(['editable', 'Editable'], ['pliego', 'Pliego'], ['vigente', 'Vigente'], ['oficial', 'Definitiva'], ['disponible', 'Disponible']) },
     { label: 'Versión vinculada', columns: this.columnas(['vinculadaAnio', 'Año'], ['vinculadaProceso', 'Proceso'], ['vinculadaCodigo', 'Código'], ['vinculadaNombre', 'Nombre']) },
     { label: 'Vigencia de versión', columns: this.columnas(['estado', 'Estado'], ['desde', 'Fecha desde'], ['hasta', 'Fecha hasta']) }
   ];
@@ -287,7 +320,12 @@ export class CatalogoVersionesBandejaComponent {
   ];
   readonly filteredDocuments = computed(() => {
     const term = this.documentSearch().trim().toLowerCase();
-    return !term ? this.documents : this.documents.filter(row => Object.values(row).some(value => String(value).toLowerCase().includes(term)));
+    return this.documents.filter(row =>
+      (!term || Object.values(row).some(value => String(value).toLowerCase().includes(term)))
+      && (!this.documentStatusFilter() || row.estado === this.documentStatusFilter())
+      && (!this.documentActionFilter() || row.tipoAccion === this.documentActionFilter())
+      && (!this.documentSystemFilter() || row.sistema === this.documentSystemFilter())
+    );
   });
   readonly nuevaVersion = computed<VersionRow>(() => ({ id: 5, anio: '2026', proceso: 'M02.1.9.1 Asignación Presupuestaria Multianual', codigo: '5', nombre: 'Versión aprobada PCM', editable: true, pliego: false, vigente: true, oficial: this.versionCincoOficial(), disponible: this.versionCincoDisponible(), estado: 'Activo', desde: '20/08/2026', hasta: '-' }));
   readonly nuevaVersionProceso = computed<VersionRow>(() => ({ id: 6, anio: '2026', proceso: 'M02.1.9.2 Programación Multianual Pliego - UE', codigo: '1', nombre: 'Versión Programación APM Aprobada', editable: true, pliego: false, vigente: true, oficial: false, disponible: this.versionSeisDisponible(), estado: 'Activo', desde: '24/08/2026', hasta: '-', vinculada: { anio: '2026', proceso: 'M02.1.9.1 Asignación Presupuestaria Multianual', codigo: '5', nombre: 'Versión Aprobada PCM' } }));
@@ -303,7 +341,7 @@ export class CatalogoVersionesBandejaComponent {
       (!term || Object.values(row).some(valor => String(valor).toLowerCase().includes(term)))
       && (!this.estado() || row.estado === this.estado())
       && (!this.anio() || row.anio === this.anio())
-      && (!this.procesoFiltro() || row.proceso.startsWith(this.procesoFiltro()))
+      && (!this.procesoFiltro() || row.proceso === this.procesoFiltro())
       && (!this.codigoFiltro() || row.codigo === this.codigoFiltro())
       && (!this.nombreFiltro() || row.nombre === this.nombreFiltro())
       && (!this.fechaDesdeFiltro() || fechaIso(row.desde) >= this.fechaDesdeFiltro())
@@ -327,6 +365,8 @@ export class CatalogoVersionesBandejaComponent {
     this.anioFiltro.set(''); this.procesoFiltro.set(''); this.codigoFiltro.set(''); this.nombreFiltro.set(''); this.estadoFiltro.set('todos'); this.fechaDesdeFiltro.set(''); this.fechaHastaFiltro.set(''); this.editableFiltro.set(''); this.pliegoFiltro.set(''); this.vigenteFiltro.set(''); this.oficialFiltro.set(''); this.disponibleFiltro.set('');
   }
   aplicarFiltros(): void { this.snackbarVisible.set(false); this.anio.set(this.anioFiltro()); this.estado.set(this.estadoFiltro() === 'todos' ? '' : this.estadoFiltro()); this.cerrarFiltros(); }
+  agregarFiltroDocumento(filter: string): void { if (filter === 'system') this.documentExtraFilterVisible.set(true); }
+  agregarFiltroRegistro(filter: string): void { if (filter === 'process') this.recordExtraFilterVisible.set(true); }
   manejarMasOpciones(opcion: string): void { if (opcion === 'columns') { this.snackbarVisible.set(false); this.columnasPanelAbierto.set(true); } }
   cerrarPanelColumnas(): void { this.columnasPanelAbierto.set(false); this.columnasBorrador.set(new Set(this.columnasExtendidas() ? this.todasLasColumnas : this.columnasIniciales)); }
   readonly columnaBorradorVisible = (key: string): boolean => this.columnasBorrador().has(key);
