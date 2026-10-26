@@ -86,6 +86,9 @@ export const DEFAULT_PROCESS_TREE: ProcessMenuNode[] = [
   {
     id: 'clasificadores-catalogos',
     label: 'Clasificadores y catálogos',
+    // Es la única sección que aparece desplegada al abrir el menú, tal como
+    // en el flujo de navegación de Clasificadores y catálogos.
+    expanded: true,
     children: [
       {
         id: 'clasificadores',
@@ -103,7 +106,29 @@ export const DEFAULT_PROCESS_TREE: ProcessMenuNode[] = [
             comingSoon: true,
           },
           { id: 'catalogo-impresion-apm', label: 'Catálogo de impresión de la APM', comingSoon: true },
-          { id: 'catalogo-versiones', label: 'Catálogo de versiones', moduleRoute: '/procesos/catalogo-versiones' },
+          {
+            id: 'catalogo-versiones',
+            label: 'Catálogo de Versiones',
+            children: [
+              {
+                id: 'catalogo-versiones-documentos',
+                label: 'Documentos y registros de versiones',
+                comingSoon: true,
+              },
+              {
+                id: 'catalogo-versiones-consultas',
+                label: 'Consultas y reportes de versiones',
+                comingSoon: true,
+              },
+              {
+                id: 'catalogo-versiones-configurador',
+                label: 'Configurador de versiones',
+                // Es la entrada funcional del módulo y muestra la grilla de
+                // versiones ya implementada.
+                moduleRoute: '/procesos/catalogo-versiones',
+              },
+            ],
+          },
         ],
       },
     ],

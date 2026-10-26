@@ -118,7 +118,7 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
             [attr.aria-expanded]="selectOpen"
             [attr.aria-label]="labelText"
             aria-haspopup="listbox"
-            (click)="toggleSelect()"
+            (click)="toggleSelect($event)"
             (keydown.escape)="cerrarSelectConEscape($event)"
           >
             <span class="min-w-0 flex-1 truncate" siafTooltip [class.text-[var(--sys-color-text-neutral-low)]]="!hasValue">
@@ -140,11 +140,18 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
 
           @if (selectOpen) {
             <button class="fixed inset-0 z-30 cursor-default bg-transparent" type="button" data-capa-cierre tabindex="-1" aria-hidden="true" (mousedown)="$event.preventDefault()" (click)="closeSelect()"></button>
-            <div class="relative z-40 mt-siaf-xs sm:absolute sm:left-0 sm:right-0 sm:top-[calc(100%+4px)] sm:mt-0" siafFoco [siafFocoAtrapar]="false" (siafFocoEscape)="closeSelect()" (siafFocoSalida)="closeSelect()">
+            <div
+              [class]="selectPanelFixed ? 'fixed z-50' : 'relative z-40 mt-siaf-xs sm:absolute sm:left-0 sm:right-0 sm:top-[calc(100%+4px)] sm:mt-0'"
+              [style.left.px]="selectPanelFixed ? selectPanelLeft : null"
+              [style.top.px]="selectPanelFixed ? selectPanelTop : null"
+              [style.width.px]="selectPanelFixed ? selectPanelWidth : null"
+              siafFoco [siafFocoAtrapar]="false" (siafFocoEscape)="closeSelect()" (siafFocoSalida)="closeSelect()"
+            >
               <siaf-select-options
                 [options]="selectOptions"
                 [selectedValue]="selectValue"
                 [selectedValues]="selectValues"
+                [wrapOptions]="selectPanelWrapOptions"
                 (selected)="onOptionSelected($event)"
               />
             </div>
@@ -158,7 +165,7 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
             [attr.aria-expanded]="selectOpen"
             [attr.aria-label]="labelText"
             aria-haspopup="listbox"
-            (click)="toggleSelect()"
+            (click)="toggleSelect($event)"
             (keydown.escape)="cerrarSelectConEscape($event)"
           >
             @if (!hasValue) {
@@ -199,13 +206,20 @@ export type TextFieldState = 'enabled' | 'error' | 'success';
 
           @if (selectOpen) {
             <button class="fixed inset-0 z-30 cursor-default bg-transparent" type="button" data-capa-cierre tabindex="-1" aria-hidden="true" (mousedown)="$event.preventDefault()" (click)="closeSelect()"></button>
-            <div class="relative z-40 mt-siaf-xs sm:absolute sm:left-0 sm:right-0 sm:top-[calc(100%+4px)] sm:mt-0" siafFoco [siafFocoAtrapar]="false" (siafFocoEscape)="closeSelect()" (siafFocoSalida)="closeSelect()">
+            <div
+              [class]="selectPanelFixed ? 'fixed z-50' : 'relative z-40 mt-siaf-xs sm:absolute sm:left-0 sm:right-0 sm:top-[calc(100%+4px)] sm:mt-0'"
+              [style.left.px]="selectPanelFixed ? selectPanelLeft : null"
+              [style.top.px]="selectPanelFixed ? selectPanelTop : null"
+              [style.width.px]="selectPanelFixed ? selectPanelWidth : null"
+              siafFoco [siafFocoAtrapar]="false" (siafFocoEscape)="closeSelect()" (siafFocoSalida)="closeSelect()"
+            >
               <siaf-select-options
                 [options]="selectOptions"
                 [selectedValues]="selectValues"
                 [multiple]="true"
                 [checkboxes]="!!selectAllLabel"
                 [selectAllLabel]="selectAllLabel"
+                [wrapOptions]="selectPanelWrapOptions"
                 (selected)="onOptionSelected($event)"
                 (allSelected)="onAllSelected($event)"
               />
@@ -297,12 +311,23 @@ export class TextFieldComponent implements OnChanges, ControlValueAccessor {
    * marcar o desmarcar todas, y el valor en una sola línea en vez de chips.
    */
   @Input() selectAllLabel = '';
+  /** Panel fijo para selects alojados dentro de una región con scroll horizontal. */
+  @Input() selectPanelFixed = false;
+  /** Ancho mínimo del panel fijo, en píxeles. */
+  @Input() selectPanelMinWidth = 0;
+  /** Permite salto de línea en las opciones del panel del select. */
+  @Input() selectPanelWrapOptions = false;
+  /** Texto mostrado una vez seleccionado, sin alterar las etiquetas completas de las opciones. */
+  @Input() selectDisplayOverride = '';
 
   @Output() valueChange = new EventEmitter<string | number | string[]>();
   @Output() trailingAction = new EventEmitter<void>();
 
   focused = false;
   selectOpen = false;
+  selectPanelLeft = 0;
+  selectPanelTop = 0;
+  selectPanelWidth = 0;
   internalValue: string | number | string[] = '';
 
   private onChange: (value: string | number | string[]) => void = () => undefined;
@@ -475,6 +500,9 @@ export class TextFieldComponent implements OnChanges, ControlValueAccessor {
   }
 
   get selectDisplayText(): string {
+    if (this.hasValue && this.selectDisplayOverride) {
+      return this.selectDisplayOverride;
+    }
     if (!this.hasValue) {
       return this.labelText;
     }
@@ -565,13 +593,24 @@ export class TextFieldComponent implements OnChanges, ControlValueAccessor {
     this.trailingAction.emit();
   }
 
-  toggleSelect(): void {
+  toggleSelect(event?: Event): void {
     if (this.disabled) {
       return;
     }
 
     this.selectOpen = !this.selectOpen;
     this.focused = this.selectOpen;
+    if (this.selectOpen && this.selectPanelFixed) {
+      const trigger = event?.currentTarget as HTMLElement | null;
+      if (trigger && typeof window !== 'undefined') {
+        const rect = trigger.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const width = Math.min(Math.max(rect.width, this.selectPanelMinWidth || rect.width), Math.max(0, viewportWidth - 16));
+        this.selectPanelLeft = Math.max(8, Math.min(rect.left, viewportWidth - width - 8));
+        this.selectPanelTop = rect.bottom + 4;
+        this.selectPanelWidth = width;
+      }
+    }
     this.cdr.markForCheck();
   }
 

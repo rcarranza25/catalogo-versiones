@@ -59,9 +59,13 @@ let siguienteId = 0;
       <ng-content select="[popover-trigger]" />
       @if (open) {
         <div
-          class="absolute top-full z-20 mt-2 flex w-[268px] max-w-[calc(100vw-32px)] flex-col gap-siaf-sm rounded-siaf-sm bg-[var(--sys-color-bg-surfaces-surface-highest)] pb-siaf-xs pt-siaf-sm text-left shadow-siaf-elevation-6"
-          [class.right-0]="align === 'end'"
-          [class.left-0]="align === 'start'"
+          [class]="fixed ? 'fixed z-50 flex flex-col gap-siaf-sm rounded-siaf-sm bg-[var(--sys-color-bg-surfaces-surface-highest)] pb-siaf-xs pt-siaf-sm text-left shadow-siaf-elevation-6' : 'absolute top-full z-20 mt-2 flex w-[268px] max-w-[calc(100vw-32px)] flex-col gap-siaf-sm rounded-siaf-sm bg-[var(--sys-color-bg-surfaces-surface-highest)] pb-siaf-xs pt-siaf-sm text-left shadow-siaf-elevation-6'"
+          [class.right-0]="!fixed && align === 'end'"
+          [class.left-0]="!fixed && align === 'start'"
+          [style.left.px]="fixed ? panelLeft : null"
+          [style.top.px]="fixed ? panelTop : null"
+          [style.width.px]="fixed ? panelActualWidth : null"
+          [style.max-height.px]="fixed ? panelActualMaxHeight : null"
           role="dialog"
           [attr.aria-labelledby]="title ? idTitulo : null"
           [attr.aria-label]="title ? null : ariaLabel || null"
@@ -109,11 +113,19 @@ export class PopoverComponent {
   @Input() align: 'start' | 'end' = 'end';
   /** Nombre accesible del panel cuando no tiene `title`. */
   @Input() ariaLabel = '';
+  /** Usa una capa fija para que el panel pueda salir de una tabla con scroll. */
+  @Input() fixed = false;
+  /** Ancho deseado de la capa fija; se limita al viewport. */
+  @Input() panelWidth = 268;
 
   @Output() closed = new EventEmitter<void>();
   @Output() action = new EventEmitter<string>();
 
   readonly idTitulo = `siaf-popover-titulo-${siguienteId++}`;
+  panelLeft = 0;
+  panelTop = 0;
+  panelActualWidth = 268;
+  panelActualMaxHeight = 320;
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
@@ -123,5 +135,18 @@ export class PopoverComponent {
   @HostListener('document:click', ['$event'])
   onClickFuera(event: MouseEvent): void {
     if (this.open && !this.host.nativeElement.contains(event.target as Node)) this.closed.emit();
+  }
+
+  @HostListener('click', ['$event'])
+  posicionarPanelFijo(event: MouseEvent): void {
+    if (!this.fixed || typeof window === 'undefined') return;
+    const trigger = (event.target as HTMLElement | null)?.closest<HTMLElement>('[popover-trigger]');
+    if (!trigger || !this.host.nativeElement.contains(trigger)) return;
+    const rect = trigger.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    this.panelActualWidth = Math.min(Math.max(this.panelWidth, rect.width), Math.max(0, viewportWidth - 16));
+    this.panelLeft = Math.max(8, Math.min(rect.left, viewportWidth - this.panelActualWidth - 8));
+    this.panelTop = rect.bottom + 4;
+    this.panelActualMaxHeight = Math.max(120, window.innerHeight - this.panelTop - 16);
   }
 }

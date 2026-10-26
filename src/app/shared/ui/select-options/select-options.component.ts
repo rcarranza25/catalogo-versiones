@@ -87,7 +87,7 @@ export interface SelectOption {
           >
             <input class="pointer-events-none shrink-0" type="checkbox" tabindex="-1" aria-hidden="true" [checked]="todasMarcadas" [indeterminate]="algunasMarcadas" />
             <span
-              class="min-w-0 flex-1 truncate"
+              [class]="wrapOptions ? 'min-w-0 flex-1 break-words whitespace-normal' : 'min-w-0 flex-1 truncate'"
               siafTooltip
               [class.font-bold]="todasMarcadas"
               [class.text-[var(--sys-color-text-neutral-activated)]]="todasMarcadas"
@@ -114,7 +114,7 @@ export interface SelectOption {
             (keydown.end)="focusBoundary($event, 'last')"
           >
             <input class="pointer-events-none shrink-0" type="checkbox" tabindex="-1" aria-hidden="true" [checked]="isSelected(option.value)" [disabled]="!!option.disabled" />
-            <span class="min-w-0 flex-1 truncate" siafTooltip [ngClass]="optionLabelClass(option.value)">{{ option.label }}</span>
+            <span [class]="wrapOptions ? 'min-w-0 flex-1 break-words whitespace-normal' : 'min-w-0 flex-1 truncate'" siafTooltip [ngClass]="optionLabelClass(option.value)">{{ option.label }}</span>
           </div>
         }
       } @else {
@@ -135,7 +135,7 @@ export interface SelectOption {
           (keydown.home)="focusBoundary($event, 'first')"
           (keydown.end)="focusBoundary($event, 'last')"
         >
-          <span class="min-w-0 flex-1 truncate" siafTooltip [ngClass]="optionLabelClass(option.value)">{{ option.label }}</span>
+          <span [class]="wrapOptions ? 'min-w-0 flex-1 break-words whitespace-normal' : 'min-w-0 flex-1 truncate'" siafTooltip [ngClass]="optionLabelClass(option.value)">{{ option.label }}</span>
           @if (isSelected(option.value)) {
             <siaf-icon
               class="shrink-0 text-[var(--sys-color-text-neutral-activated)]"
@@ -158,6 +158,8 @@ export class SelectOptionsComponent {
   @Input() multiple = false;
   /** Con `multiple`, una casilla nativa por opción en vez del check (Figma «Menu» con casillas). */
   @Input() checkboxes = false;
+  /** Permite que las etiquetas extensas se distribuyan en varias líneas. */
+  @Input() wrapOptions = false;
   /** Con casillas, agrega arriba la fila que marca o desmarca todas («Seleccionar todo»). */
   @Input() selectAllLabel = '';
 

@@ -74,12 +74,15 @@ type VersionVinculadaDemo = { id: string; anio: string; proceso: string; codigo:
 
             <section class="grid gap-siaf-md">
               <h3 class="m-0 text-sm font-bold uppercase text-text">Condiciones de versión</h3>
-              <div class="grid gap-siaf-xs sm:grid-cols-2 lg:grid-cols-5 lg:gap-siaf-lg">
-                <siaf-checkbox label="Editable" [checked]="editable()" (checkedChange)="editable.set($event)" />
+              <div class="grid gap-siaf-xs sm:grid-cols-2 lg:grid-cols-6 lg:gap-siaf-lg">
+                <siaf-checkbox label="Editable" [checked]="editable()" (checkedChange)="cambiarEditable($event)" />
                 <siaf-checkbox label="Pliego" [checked]="pliego()" (checkedChange)="pliego.set($event)" />
                 <siaf-checkbox label="Vigente" [checked]="vigente()" (checkedChange)="vigente.set($event)" />
-                <siaf-checkbox label="Definitiva" [checked]="oficial()" (checkedChange)="oficial.set($event)" />
-                <siaf-checkbox label="Disponible" [checked]="disponible()" (checkedChange)="disponible.set($event)" />
+                <siaf-checkbox label="Oficial" [checked]="oficial()" (checkedChange)="oficial.set($event)" />
+                <siaf-checkbox label="Definitiva" [checked]="definitiva()" (checkedChange)="definitiva.set($event)" />
+                <div>
+                  <siaf-checkbox label="Disponible" [checked]="disponible()" [disabled]="editable()" (checkedChange)="cambiarDisponible($event)" />
+                </div>
               </div>
             </section>
 
@@ -179,6 +182,10 @@ export class CatalogoVersionesRegistroComponent {
   readonly esEdicionVersionDos = this.esEdicion && this.codigoEdicion === '2';
   readonly versionCincoActualizada = Boolean(history.state?.['versionCincoActualizada']);
   readonly versionCincoOficial = Boolean(history.state?.['versionCincoOficial']);
+  readonly versionCincoDefinitiva = Boolean(history.state?.['versionCincoDefinitiva']);
+  readonly versionCincoEditable = Boolean(history.state?.['versionCincoEditable']);
+  readonly versionCincoPliego = Boolean(history.state?.['versionCincoPliego']);
+  readonly versionCincoVigente = Boolean(history.state?.['versionCincoVigente']);
   readonly versionCincoDisponible = Boolean(history.state?.['versionCincoDisponible']);
   readonly versionSeisDisponible = Boolean(history.state?.['versionSeisDisponible']);
   readonly nuevoProcesoExistente = Boolean(history.state?.['nuevoProcesoExistente']);
@@ -227,9 +234,12 @@ export class CatalogoVersionesRegistroComponent {
   });
   readonly codigo = signal(this.esEdicion ? (this.esEdicionVersionDos ? '2' : '5') : '');
   readonly nombre = signal(this.esEdicion ? (this.esEdicionVersionDos ? 'Versión DGPP borrador' : 'Versión aprobada PCM') : '');
-  readonly descripcion = signal(this.esEdicion ? (this.esEdicionVersionDos ? 'Asignación presupuestal periodo 2026-2028 para OGTI' : 'Asignación presupuestal periodo 2027-2029') : '');
-  readonly editable = signal(this.esEdicionVersionDos ? false : true); readonly pliego = signal(false); readonly vigente = signal(this.esEdicionVersionDos ? false : true);
+  readonly descripcion = signal(this.esEdicion ? (this.esEdicionVersionDos ? 'Asignación presupuestal periodo 2026-2028 para OGTI' : 'Versión final del presupuesto operativo para el ejercicio fiscal 2026. Integra los ajustes derivados de la proyección de ventas, la optimización integral de costes directos y la redistribución estratégica de recursos en marketing e infraestructura tecnológica. Se contempla una reserva para contingencias ante la volatilidad del tipo de cambio e inflación prevista. Documento formalmente revisado y validado por el área de finanzas para su presentación oficial y aprobación por parte de la alta dirección.') : 'Versión final del presupuesto operativo para el ejercicio fiscal 2026. Integra los ajustes derivados de la proyección de ventas, la optimización integral de costes directos y la redistribución estratégica de recursos en marketing e infraestructura tecnológica. Se contempla una reserva para contingencias ante la volatilidad del tipo de cambio e inflación prevista. Documento formalmente revisado y validado por el área de finanzas para su presentación oficial y aprobación por parte de la alta dirección.');
+  // En alta no se preselecciona ninguna condición: el usuario decide cuáles aplicar.
+  // En la ruta heredada de edición se conserva el valor que llegó guardado.
+  readonly editable = signal(this.esEdicion ? (this.esEdicionVersionDos ? false : this.versionCincoEditable) : false); readonly pliego = signal(this.esEdicion && !this.esEdicionVersionDos ? this.versionCincoPliego : false); readonly vigente = signal(this.esEdicion ? (this.esEdicionVersionDos ? false : this.versionCincoVigente) : true);
   readonly oficial = signal(this.esEdicion && !this.esEdicionVersionDos ? this.versionCincoOficial : false);
+  readonly definitiva = signal(this.esEdicion && !this.esEdicionVersionDos ? this.versionCincoDefinitiva : false);
   readonly disponible = signal(this.esEdicion && !this.esEdicionVersionDos ? this.versionCincoDisponible : false);
   readonly estado = signal('activo'); readonly fechaDesde = signal(this.esEdicionVersionDos ? '2026-07-05' : '2026-08-20');
   readonly puedeGrabar = computed(() => Boolean(
@@ -239,7 +249,6 @@ export class CatalogoVersionesRegistroComponent {
     && this.descripcion().trim()
     && this.estado()
     && this.fechaDesde()
-    && (this.esEdicion || this.disponibilidadVersionesVerificada())
   ));
 
   abrirSelectorProceso(): void {
@@ -303,7 +312,7 @@ export class CatalogoVersionesRegistroComponent {
   completarDatosVersion(): void {
     if (this.esEdicion) return;
     this.nombre.set(this.procesoSeleccionado()?.codigo === 'M02.1.9.2' ? 'Versión Programación APM Aprobada' : 'Versión aprobada PCM');
-    this.descripcion.set('Asignación presupuestal periodo 2027-2029');
+    this.descripcion.set(this.procesoSeleccionado()?.codigo === 'M02.1.9.2' ? 'Asignación presupuestal periodo 2027-2029' : 'Versión final del presupuesto operativo para el ejercicio fiscal 2026. Integra los ajustes derivados de la proyección de ventas, la optimización integral de costes directos y la redistribución estratégica de recursos en marketing e infraestructura tecnológica. Se contempla una reserva para contingencias ante la volatilidad del tipo de cambio e inflación prevista. Documento formalmente revisado y validado por el área de finanzas para su presentación oficial y aprobación por parte de la alta dirección.');
   }
 
   grabar(): void {
@@ -323,15 +332,27 @@ export class CatalogoVersionesRegistroComponent {
         versionActualizada: this.esEdicion || this.versionCincoActualizada,
         versionDosInactiva: this.esEdicionVersionDos && this.estado() === 'inactivo',
         versionCincoOficial: esVersionCinco ? this.oficial() : this.versionCincoOficial,
+        versionCincoDefinitiva: esVersionCinco ? this.definitiva() : this.versionCincoDefinitiva,
+        versionCincoEditable: esVersionCinco ? this.editable() : this.versionCincoEditable,
+        versionCincoPliego: esVersionCinco ? this.pliego() : this.versionCincoPliego,
+        versionCincoVigente: esVersionCinco ? this.vigente() : this.versionCincoVigente,
         // Cuando la versión 6 pasa a Disponible, reemplaza la disponibilidad de la 5.
         versionCincoDisponible: esVersionCinco ? this.disponible() : (esVersionSeis && this.disponible() ? false : this.versionCincoDisponible),
         versionSeisDisponible: esVersionSeis ? this.disponible() : this.versionSeisDisponible,
+        versionSeisOficial: esVersionSeis ? this.oficial() : false,
+        versionSeisDefinitiva: esVersionSeis ? this.definitiva() : false,
+        versionSeisEditable: esVersionSeis ? this.editable() : false,
+        versionSeisPliego: esVersionSeis ? this.pliego() : false,
+        versionSeisVigente: esVersionSeis ? this.vigente() : true,
         nuevoProceso: this.procesoSeleccionado()?.codigo === 'M02.1.9.2' || this.nuevoProcesoExistente,
         mostrarSnackbar: true,
         activeTab: 'records',
       }
     });
   }
+
+  cambiarEditable(checked: boolean): void { this.editable.set(checked); if (checked) this.disponible.set(false); }
+  cambiarDisponible(checked: boolean): void { if (!this.editable()) this.disponible.set(checked); }
 
   private reiniciarVerificacionVersionesVinculadas(): void {
     this.disponibilidadVersionesVerificada.set(false);
