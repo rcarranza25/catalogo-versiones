@@ -410,7 +410,7 @@ export class ModalComponent implements OnChanges {
 
   get resolvedIllustrationSrc(): string {
     const illustration = this.illustrationSrc || this.preset?.illustration || "";
-    return this.resolveThemeIllustration(illustration);
+    return this.resolveAssetUrl(this.resolveThemeIllustration(illustration));
   }
 
   get resolvedConfirmLabel(): string {
@@ -442,6 +442,15 @@ export class ModalComponent implements OnChanges {
     return src.startsWith("assets/figma/modals/")
       ? src.replace("assets/figma/modals/", "assets/figma/modals-dark/")
       : src;
+  }
+
+  /**
+   * Las ilustraciones del kit viven en los assets publicados en la raíz. Al
+   * anteponer `/` evitamos que un navegador las interprete relativas a la ruta
+   * actual (por ejemplo, `/procesos/catalogo-versiones/assets/...`).
+   */
+  private resolveAssetUrl(src: string): string {
+    return src.startsWith('assets/') ? `/${src}` : src;
   }
 
   private isDarkTheme(): boolean {

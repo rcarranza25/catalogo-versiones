@@ -247,6 +247,13 @@ export class LoginComponent {
 
   onSubmit(): void {
     if (!this.usuario() || !this.contrasena()) return;
+    // Cada ingreso comienza el flujo del catálogo con sus cuatro versiones
+    // iniciales, sin conservar altas o ediciones de una sesión anterior.
+    try {
+      localStorage.removeItem('siaf.catalogo-versiones.demo.v2');
+      localStorage.removeItem('siaf.catalogo-versiones.rows');
+      sessionStorage.removeItem('siaf.catalogo-versiones.session.v1');
+    } catch { /* El catálogo también se inicializa sin almacenamiento local. */ }
     this.authService.login(this.usuario().trim(), this.contrasena()).subscribe({
       next: () => void this.router.navigate(['/panel']),
     });

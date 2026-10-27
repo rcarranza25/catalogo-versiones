@@ -8,18 +8,15 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 import { RecordsSearchToolbarComponent } from '../../../shared/components/records-search-toolbar/records-search-toolbar.component';
 import { RecordsTabItem } from '../../../shared/components/records-tabs/records-tabs.component';
-import { TableControlsComponent } from '../../../shared/components/table-controls/table-controls.component';
 import { ButtonComponent } from '../../../shared/ui/button/button.component';
 import { IconComponent } from '../../../shared/ui/icon/icon.component';
 import { IconDropdownMenuComponent } from '../../../shared/ui/icon-dropdown-menu/icon-dropdown-menu.component';
 import { ModalComponent } from '../../../shared/ui/modal/modal.component';
-import { PopoverComponent } from '../../../shared/ui/popover/popover.component';
 import { StatusTagComponent } from '../../../shared/ui/status-tag/status-tag.component';
 import { SnackbarComponent } from '../../../shared/ui/snackbar/snackbar.component';
 import { SideNavComponent } from '../../../shared/ui/side-nav/side-nav.component';
 import { DateTimePickerComponent } from '../../../shared/ui/date-time-picker/date-time-picker.component';
 import { TextFieldComponent } from '../../../shared/ui/text-field/text-field.component';
-import { TextAreaControlComponent } from '../../../shared/ui/text-area-control/text-area-control.component';
 import { TooltipDirective } from '../../../shared/ui/tooltip/tooltip.directive';
 import { ColumnVisibilityPanelComponent, ColumnVisibilityPanelSection } from '../../../shared/ui/column-visibility-panel/column-visibility-panel.component';
 import type { DocumentsRecordsColumn } from '../../../shared/types/documents-records.types';
@@ -36,11 +33,12 @@ const BASE_VERSION_ROWS: VersionRow[] = [
 ];
 const DEMO_STORAGE_KEY = 'siaf.catalogo-versiones.demo.v2';
 const LEGACY_STORAGE_KEY = 'siaf.catalogo-versiones.rows';
+const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
 
 @Component({
   selector: 'siaf-catalogo-versiones-bandeja',
   standalone: true,
-  imports: [BreadcrumbComponent, ButtonComponent, ColumnVisibilityPanelComponent, DocumentHistoryPanelComponent, FilterPillComponent, IconComponent, IconDropdownMenuComponent, ModalComponent, PageHeaderComponent, PaginationComponent, PopoverComponent, RecordsSearchToolbarComponent, SnackbarComponent, SideNavComponent, StatusTagComponent, TableControlsComponent, DateTimePickerComponent, TextAreaControlComponent, TextFieldComponent, TooltipDirective],
+  imports: [BreadcrumbComponent, ButtonComponent, ColumnVisibilityPanelComponent, DocumentHistoryPanelComponent, FilterPillComponent, IconComponent, IconDropdownMenuComponent, ModalComponent, PageHeaderComponent, PaginationComponent, RecordsSearchToolbarComponent, SnackbarComponent, SideNavComponent, StatusTagComponent, DateTimePickerComponent, TextFieldComponent, TooltipDirective],
   template: `
     <main class="min-h-[calc(100vh-56px)] overflow-x-hidden bg-[var(--sys-color-bg-surfaces-surface-lowest)] text-text">
       <div class="w-full">
@@ -125,6 +123,7 @@ const LEGACY_STORAGE_KEY = 'siaf.catalogo-versiones.rows';
           <article class="flex w-full min-w-0 flex-col rounded-siaf-md bg-surface">
             <header class="flex h-14 items-center px-siaf-md pt-siaf-md">
               <h2 class="m-0 text-base font-bold uppercase tracking-[0.02px] text-text">Versiones</h2>
+              <siaf-button class="ml-auto" variant="accent" icon="add" [iconOnly]="true" ariaLabel="Registrar versión" (click)="crearVersion()" />
             </header>
 
             <div class="flex min-w-0 flex-col gap-siaf-xs p-siaf-md">
@@ -135,19 +134,11 @@ const LEGACY_STORAGE_KEY = 'siaf.catalogo-versiones.rows';
                 </ng-container>
               </siaf-records-search-toolbar>
 
-              <siaf-table-controls
-                [checked]="allSelected()" [indeterminate]="someSelected()" [selectedCount]="selectedIds().size"
-                [page]="1" [pageSize]="10" [totalItems]="persistedFilteredRows().length" [totalPages]="1"
-                [showEditAction]="true" [editDisabled]="!puedeEditarSeleccion()"
-                (selectionChange)="toggleAll($event)" (edit)="editarVersion()" />
-              @if (editingId() && motivoGrabacion()) { <p class="m-0 text-sm text-[var(--sys-color-text-states-error)]" role="alert">{{ motivoGrabacion() }}</p> }
-
               <!-- Solo esta caja admite scroll horizontal; no se propaga al shell ni a los controles. -->
               <div class="min-w-0 max-w-full overflow-x-auto rounded-siaf-sm" aria-label="Grilla de versiones">
-                <table class="table-fixed border-collapse text-left text-sm" [style.width.px]="editingId() ? 3020 : 2908" [style.min-width.px]="editingId() ? 3020 : 2908">
+                <table class="table-fixed border-collapse text-left text-sm" [style.width.px]="2860" [style.min-width.px]="2860">
                   <!-- En una tabla fixed los anchos del segundo encabezado no determinan columnas: este colgroup es la fuente única de verdad. -->
                   <colgroup>
-                    <col [style.width.px]="48" />
                     @if (columnaVisible('anio')) { <col [style.width.px]="90" /> }
                     @if (columnaVisible('proceso')) { <col [style.width.px]="280" /> }
                     @if (columnaVisible('codigo')) { <col [style.width.px]="80" /> }
@@ -158,39 +149,31 @@ const LEGACY_STORAGE_KEY = 'siaf.catalogo-versiones.rows';
                     @if (columnaVisible('estado')) { <col [style.width.px]="170" /> }
                     @if (columnaVisible('desde')) { <col [style.width.px]="120" /> }
                     @if (columnaVisible('hasta')) { <col [style.width.px]="120" /> }
-                    @if (editingId()) { <col [style.width.px]="112" /> }
                   </colgroup>
                   <thead class="bg-surface-high text-[10px] font-bold uppercase text-text">
                     <tr class="h-10 border-b border-[var(--sys-color-divider-default)]">
-                      <th rowspan="2" class="w-12 px-siaf-sm"><span class="sr-only">Selección</span></th>
                       @if (columnaVisible('anio')) { <th rowspan="2" class="w-[90px] px-siaf-md text-left">Año</th> } @if (columnaVisible('proceso')) { <th rowspan="2" class="w-[280px] px-siaf-md text-left">Proceso</th> } @if (columnaVisible('codigo')) { <th rowspan="2" class="w-[80px] px-siaf-md text-left">Código</th> } @if (columnaVisible('nombre')) { <th rowspan="2" class="w-[280px] px-siaf-md text-left">Nombre</th> } @if (columnaVisible('descripcion')) { <th rowspan="2" class="w-[320px] px-siaf-md text-left">Descripción</th> }
                       @if (condicionesVisibles().length) { <th [attr.colspan]="condicionesVisibles().length" class="condiciones-versiones-grupo px-siaf-md text-center">Condiciones de versión</th> }
                       @if (vinculadasVisibles().length) { <th [attr.colspan]="vinculadasVisibles().length" class="border-r border-[var(--sys-color-divider-strong)] px-siaf-md text-center">Versión vinculada</th> }
-                      @if (columnaVisible('estado')) { <th rowspan="2" class="w-[170px] min-w-[170px] px-siaf-md text-left">Estado</th> } @if (columnaVisible('desde')) { <th rowspan="2" class="w-[120px] px-siaf-md text-left">Fecha desde</th> } @if (columnaVisible('hasta')) { <th rowspan="2" class="w-[120px] px-siaf-md text-left">Fecha hasta</th> } @if (editingId()) { <th rowspan="2" class="sticky right-0 z-30 w-[112px] min-w-[112px] px-siaf-md text-left shadow-[-6px_0_10px_rgba(0,0,0,.12)]" style="background-color: #e0e0e0"><span class="sr-only">Acciones</span></th> }
+                      @if (columnaVisible('estado')) { <th rowspan="2" class="w-[170px] min-w-[170px] px-siaf-md text-left">Estado</th> } @if (columnaVisible('desde')) { <th rowspan="2" class="w-[120px] px-siaf-md text-left">Fecha desde</th> } @if (columnaVisible('hasta')) { <th rowspan="2" class="w-[120px] px-siaf-md text-left">Fecha hasta</th> }
                     </tr>
                     <tr class="h-10 border-b border-[var(--sys-color-divider-default)]">@for (condition of condicionesVisibles(); track condition) { <th class="w-[100px] px-siaf-md text-left" [class.condicion-divider-inicio]="condition === 'editable'" [class.condicion-divider-fin]="condition === 'disponible'">{{ etiquetaColumna(condition) }}</th> } @for (column of vinculadasVisibles(); track column) { <th [class]="anchoColumnaVinculada(column)">{{ etiquetaColumna(column) }}</th> }</tr>
                   </thead>
                   <tbody>
                     @for (row of filteredRows(); track row.id) {
-                      <tr class="h-[58px] border-b border-[var(--sys-color-divider-default)] hover:bg-[var(--sys-color-bg-states-light-hover)]" [style.background-color]="selectedIds().has(row.id) ? '#e7f0f8' : null">
-                        <td class="px-siaf-sm"><input class="size-4 accent-[var(--sys-color-icon-states-enabled)]" type="checkbox" [attr.aria-label]="'Seleccionar versión ' + row.codigo" [checked]="selectedIds().has(row.id)" [disabled]="editingId() === row.id" (change)="toggleRow(row.id)" /></td>
-                        @if (columnaVisible('anio')) { <td class="px-siaf-sm">@if (esFilaNueva(row.id)) { <siaf-input label="Año" [autoSuccess]="false" [value]="draft()!.anio" (valueChange)="updateDraft('anio', $any($event))" /> } @else { {{ row.anio }} }</td> }
-                        @if (columnaVisible('proceso')) { <td class="px-siaf-sm">@if (esFilaNueva(row.id)) { <siaf-input type="select" label="Proceso" [required]="true" [autoSuccess]="false" [selectPanelFixed]="true" [selectPanelMinWidth]="460" [selectPanelWrapOptions]="true" [options]="opcionesProcesoEdicion" [value]="draft()!.proceso" (valueChange)="updateDraft('proceso', $any($event))" /> } @else { {{ row.proceso }} }</td> }
-                        @if (columnaVisible('codigo')) { <td class="px-siaf-sm">@if (esFilaNueva(row.id)) { <siaf-input label="Código" [autoSuccess]="false" [value]="draft()!.codigo" (valueChange)="updateDraft('codigo', $any($event))" /> } @else { {{ row.codigo }} }</td> }
-                        @if (columnaVisible('nombre')) { <td class="px-siaf-sm">@if (editingId() === row.id) { <siaf-input label="Nombre" [autoSuccess]="false" [value]="draft()!.nombre" (click)="autocompletarNombre()" (valueChange)="updateDraft('nombre', $any($event))" /> } @else { {{ row.nombre }} }</td> }
-                        @if (columnaVisible('descripcion')) { <td class="px-siaf-sm">@if (editingId() === row.id) { <text-area-control placeholder="Descripción" [maxlength]="500" [value]="draft()!.descripcion" (click)="autocompletarDescripcion()" (valueChange)="updateDraft('descripcion', $event)" /> } @else { <siaf-popover [open]="descripcionPopoverId() === row.id" [fixed]="true" [panelWidth]="460" title="Descripción" (closed)="cerrarDescripcionPopover()"><button popover-trigger class="descripcion-resumida descripcion-disparador" type="button" [attr.aria-expanded]="descripcionPopoverId() === row.id" (click)="alternarDescripcionPopover(row.id)">{{ row.descripcion }}</button><p class="descripcion-completa-popover">{{ row.descripcion }}</p></siaf-popover> }</td> }
-                        @for (condition of condicionesVisibles(); track condition) { <td class="px-siaf-sm text-center" [class.condicion-divider-inicio]="condition === 'editable'" [class.condicion-divider-fin]="condition === 'disponible'">@if (editingId() === row.id) { <input type="checkbox" [checked]="$any(draft()!)[condition]" [disabled]="condition === 'disponible' && draft()!.editable" [attr.aria-describedby]="condition === 'disponible' ? 'available-help' : null" (change)="updateCondition(condition, $any($event.target).checked)" /> } @else if ($any(row)[condition]) { <siaf-icon name="check" [size]="24" /> }</td> }
-                        @for (column of vinculadasVisibles(); track column) { <td [class]="claseCeldaVinculada(column)">@if (column === 'vinculadaCodigo' && editingId() === row.id) { <siaf-input class="version-vinculada-codigo" type="select" label="Código" placeholder="Seleccionar" [autoSuccess]="false" [selectPanelFixed]="true" [selectPanelMinWidth]="360" [selectPanelWrapOptions]="true" [selectDisplayOverride]="draft()!.vinculada?.codigo ?? ''" [options]="opcionesVersionesVinculables()" [value]="valorSeleccionVinculada()" (valueChange)="seleccionarVersionVinculada($any($event))" /> } @else { {{ valorVinculado(row, column) }} }</td> }
-                        @if (columnaVisible('estado')) { <td class="px-siaf-sm">@if (editingId() === row.id) { <siaf-input type="select" label="Estado" [autoSuccess]="false" [options]="opcionesEstadoEdicion" [value]="draft()!.estado" (valueChange)="updateDraft('estado', $any($event))" /> } @else { <siaf-status-tag [tone]="row.estado === 'Inactivo' ? 'default' : 'info'" appearance="soft" size="small" [icon]="row.estado === 'Inactivo' ? 'info' : 'check_circle'">{{ row.estado }}</siaf-status-tag> }</td> } @if (columnaVisible('desde')) { <td class="px-siaf-sm">{{ row.desde }}</td> } @if (columnaVisible('hasta')) { <td class="px-siaf-sm text-center">{{ row.hasta }}</td> }
-                        @if (editingId()) { <td class="sticky right-0 z-20 isolate w-[112px] min-w-[112px] border-l border-[var(--sys-color-divider-default)] px-siaf-sm text-center shadow-[-6px_0_10px_rgba(0,0,0,.12)]" [style.background-color]="editingId() === row.id ? '#e7f0f8' : '#ffffff'">@if (editingId() === row.id) { <div class="flex justify-center gap-1"><siaf-button variant="text" size="sm" icon="close" [iconOnly]="true" ariaLabel="Cancelar edición" siafTooltip="Cancelar edición" (click)="solicitarCancelacionFila()" /><siaf-button variant="text" size="sm" icon="save" [iconOnly]="true" ariaLabel="Grabar cambios" siafTooltip="Grabar cambios" [disabled]="!puedeGrabarEdicion()" (click)="solicitarGrabacionEdicion()" /></div> }</td> }
+                      <tr class="h-[58px] cursor-pointer border-b border-[var(--sys-color-divider-default)] hover:bg-[var(--sys-color-bg-states-light-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--sys-color-border-states-focus)]" role="button" tabindex="0" [attr.aria-label]="'Editar versión ' + row.codigo" (click)="editarVersion(row)" (keydown.enter)="editarVersion(row)" (keydown.space)="$event.preventDefault(); editarVersion(row)">
+                        @if (columnaVisible('anio')) { <td class="px-siaf-sm">{{ row.anio }}</td> }
+                        @if (columnaVisible('proceso')) { <td class="whitespace-normal px-siaf-sm leading-[normal]">{{ row.proceso }}</td> }
+                        @if (columnaVisible('codigo')) { <td class="px-siaf-sm">{{ row.codigo }}</td> }
+                        @if (columnaVisible('nombre')) { <td class="whitespace-normal px-siaf-sm leading-[normal]">{{ row.nombre }}</td> }
+                        @if (columnaVisible('descripcion')) { <td class="whitespace-normal px-siaf-sm leading-[normal]">{{ row.descripcion }}</td> }
+                        @for (condition of condicionesVisibles(); track condition) { <td class="px-siaf-sm text-center" [class.condicion-divider-inicio]="condition === 'editable'" [class.condicion-divider-fin]="condition === 'disponible'">@if ($any(row)[condition]) { <siaf-icon name="check" [size]="24" /> }</td> }
+                        @for (column of vinculadasVisibles(); track column) { <td [class]="claseCeldaVinculada(column)">{{ valorVinculado(row, column) }}</td> }
+                        @if (columnaVisible('estado')) { <td class="px-siaf-sm"><siaf-status-tag [tone]="row.estado === 'Inactivo' ? 'default' : 'info'" appearance="soft" size="small" [icon]="row.estado === 'Inactivo' ? 'info' : 'check_circle'">{{ row.estado }}</siaf-status-tag></td> } @if (columnaVisible('desde')) { <td class="px-siaf-sm">{{ row.desde }}</td> } @if (columnaVisible('hasta')) { <td class="px-siaf-sm text-center">{{ row.hasta }}</td> }
                       </tr>
                     }
                   </tbody>
                 </table>
-                <div class="flex min-h-12 items-center border-b border-[var(--sys-color-divider-default)] px-siaf-md" [style.width.px]="editingId() ? 3020 : 2908" [style.min-width.px]="editingId() ? 3020 : 2908">
-                  <siaf-button variant="text" size="sm" icon="add" (click)="crearFila()" [disabled]="editingId() !== null">Añadir</siaf-button>
-                </div>
-                <p id="available-help" class="sr-only">Disponible no puede marcarse mientras Editable esté seleccionado.</p>
               </div>
 
               <siaf-pagination position="Bottom" [rowPage]="true" [page]="1" [pageSize]="10" [totalItems]="persistedFilteredRows().length" [totalPages]="1" />
@@ -413,13 +396,13 @@ export class CatalogoVersionesBandejaComponent {
   readonly editError = signal('');
   readonly columnasPanelAbierto = signal(false);
   readonly columnasExtendidas = signal(true);
-  readonly columnasBorrador = signal<Set<string>>(new Set(['anio', 'proceso', 'codigo', 'nombre', 'descripcion', 'editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible', 'vinculadaAnio', 'vinculadaProceso', 'vinculadaCodigo', 'vinculadaNombre', 'estado', 'desde', 'hasta']));
+  readonly columnasBorrador = signal<Set<string>>(new Set(['anio', 'proceso', 'codigo', 'nombre', 'editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible', 'vinculadaAnio', 'vinculadaProceso', 'vinculadaCodigo', 'vinculadaNombre', 'estado', 'desde', 'hasta']));
   readonly columnasVisibles = signal<Set<string>>(new Set(this.columnasBorrador()));
-  private readonly columnasIniciales = new Set(['anio', 'proceso', 'codigo', 'nombre', 'descripcion', 'editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible', 'vinculadaAnio', 'vinculadaProceso', 'vinculadaCodigo', 'vinculadaNombre', 'estado', 'desde', 'hasta']);
+  private readonly columnasIniciales = new Set(['anio', 'proceso', 'codigo', 'nombre', 'editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible', 'vinculadaAnio', 'vinculadaProceso', 'vinculadaCodigo', 'vinculadaNombre', 'estado', 'desde', 'hasta']);
   readonly anioFiltro = signal(''); readonly procesoFiltro = signal(''); readonly codigoFiltro = signal(''); readonly nombreFiltro = signal(''); readonly estadoFiltro = signal(''); readonly vinculadaAnioFiltro = signal(''); readonly vinculadaProcesoFiltro = signal(''); readonly vinculadaCodigoFiltro = signal(''); readonly vinculadaNombreFiltro = signal(''); readonly fechaDesdeFiltro = signal(''); readonly fechaHastaFiltro = signal(''); readonly editableFiltro = signal(''); readonly pliegoFiltro = signal(''); readonly vigenteFiltro = signal(''); readonly oficialFiltro = signal(''); readonly disponibleFiltro = signal('');
   readonly mensajeSnackbar = signal('');
   readonly tituloConfirmacionCancelacionFila = computed(() => this.editingId() !== null && this.esFilaNueva(this.editingId()!) ? '¿Está seguro(a) de cancelar el registro?' : '¿Está seguro(a) de cancelar la edición?');
-  readonly breadcrumbs = [{ label: 'Inicio', href: '/panel' }, { label: 'Procesos presupuesto' }, { label: 'Clasificadores y catálogos' }, { label: 'Catálogo de Versiones' }];
+  readonly breadcrumbs = [{ label: 'Inicio', href: '/panel' }, { label: 'Procesos presupuesto' }, { label: 'Clasificadores y catálogos' }, { label: 'Catálogo de versiones' }];
   /** Esta pantalla representa el listado de registros; no crea documentos desde el catálogo. */
   readonly tabsItems: RecordsTabItem[] = [{ id: 'documents', label: 'Documentos' }, { id: 'records', label: 'Registros' }];
   readonly optionsMenu = [{ label: 'Ocultar o mostrar columnas', value: 'columns', divider: true }, { label: 'Reiniciar demo', value: 'reset-demo', icon: 'restart_alt' }];
@@ -454,11 +437,28 @@ export class CatalogoVersionesBandejaComponent {
   constructor() {
     if (typeof localStorage === 'undefined') return;
     try {
-      // No heredamos las filas inyectadas por iteraciones anteriores del demo.
-      // Solo esta clave se escribe desde el flujo actual y se conserva entre recargas.
-      const saved = JSON.parse(localStorage.getItem(DEMO_STORAGE_KEY) ?? 'null');
-      if (Array.isArray(saved) && saved.length) this.rows.set(saved as VersionRow[]);
-    } catch { /* Datos locales inválidos: se conservan los cuatro registros iniciales. */ }
+      // La demostración siempre parte de sus cuatro registros base. Limpiamos
+      // los datos persistidos por versiones anteriores para que una prueba no
+      // agregue filas (por ejemplo, el código 5) al siguiente inicio.
+      localStorage.removeItem(DEMO_STORAGE_KEY);
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    } catch { /* Si el almacenamiento no está disponible, la base ya tiene cuatro registros. */ }
+
+    try {
+      const filasSesion = JSON.parse(sessionStorage.getItem(SESSION_STORAGE_KEY) ?? 'null');
+      if (Array.isArray(filasSesion) && filasSesion.length >= BASE_VERSION_ROWS.length) this.rows.set(filasSesion as VersionRow[]);
+    } catch { /* Sin sesión previa, se conservan los cuatro registros iniciales. */ }
+
+    const registro = history.state?.['registroVersion'] as VersionRow | undefined;
+    if (registro) {
+      this.rows.update(rows => {
+        const index = rows.findIndex(row => row.id === registro.id);
+        return index >= 0 ? rows.map(row => row.id === registro.id ? registro : row) : [...rows, registro];
+      });
+      this.mensajeSnackbar.set(history.state?.['edicionVersion'] ? 'Registro actualizado con éxito' : 'Registro agregado con éxito');
+      this.snackbarVisible.set(true);
+      this.persistirRows();
+    }
   }
   readonly documents: VersionDocumentRow[] = [
     { id: 4, documento: 'Documento autogenerado', numero: '0004', tipoAccion: 'Creación', estado: 'Aceptado', sistema: 'Presupuesto', fecha: '15/06/2024', entidad: '009 Ministerio de Economía y Finanzas' },
@@ -579,8 +579,9 @@ export class CatalogoVersionesBandejaComponent {
     const unique = [...new Set(values.filter((value): value is string => Boolean(value)))];
     return [{ label: 'Todos', value: '' }, ...unique.map(value => ({ label: value, value }))];
   }
+  /** Los cambios viven durante la sesión actual; login la reinicia a cuatro filas. */
   private persistirRows(): void {
-    if (typeof localStorage !== 'undefined') localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(this.rows()));
+    if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(this.rows()));
   }
   readonly condicionesVisibles = computed(() => ['editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible'].filter(key => this.columnaVisible(key)));
   readonly vinculadasVisibles = computed(() => ['vinculadaAnio', 'vinculadaProceso', 'vinculadaCodigo', 'vinculadaNombre'].filter(key => this.columnaVisible(key)));
@@ -589,31 +590,17 @@ export class CatalogoVersionesBandejaComponent {
   anchoColumnaVinculada(key: string): string { return `px-siaf-md text-left${key === 'vinculadaNombre' ? ' border-r border-[var(--sys-color-divider-strong)]' : ''}`; }
   claseCeldaVinculada(key: string): string { return `min-w-0 px-siaf-sm${key === 'vinculadaProceso' ? ' whitespace-normal leading-[normal]' : ''}${key === 'vinculadaNombre' ? ' border-r border-[var(--sys-color-divider-strong)] whitespace-nowrap' : ''}`; }
   valorVinculado(row: VersionRow, key: string): string { const link = this.editingId() === row.id ? this.draft()?.vinculada : row.vinculada; return ({ vinculadaAnio: link?.anio, vinculadaProceso: link?.proceso, vinculadaCodigo: link?.codigo, vinculadaNombre: link?.nombre } as Record<string, string | undefined>)[key] ?? ''; }
-  private readonly todasLasColumnas = ['anio', 'proceso', 'codigo', 'nombre', 'descripcion', 'editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible', 'vinculadaAnio', 'vinculadaProceso', 'vinculadaCodigo', 'vinculadaNombre', 'estado', 'desde', 'hasta'];
-  crearFila(): void {
-    if (this.editingId() !== null) return;
-    const row: VersionRow = { id: -Date.now(), anio: '2026', proceso: '', codigo: '', nombre: '', descripcion: '', editable: false, pliego: false, vigente: true, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '20/08/2026', hasta: '-', auditadoEn: '' };
-    this.filaNueva.set(row); this.draft.set(structuredClone(row)); this.editingId.set(row.id); this.reiniciarAutocompletado(); this.editError.set(''); this.selectedIds.set(new Set([row.id]));
-  }
+  private readonly todasLasColumnas = ['anio', 'proceso', 'codigo', 'nombre', 'editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible', 'vinculadaAnio', 'vinculadaProceso', 'vinculadaCodigo', 'vinculadaNombre', 'estado', 'desde', 'hasta'];
+  crearVersion(): void { void this.router.navigateByUrl('/procesos/catalogo-versiones/nuevo'); }
   esFilaNueva(id: number): boolean { return this.filaNueva()?.id === id; }
   alternarDescripcionPopover(id: number): void {
     this.descripcionPopoverId.update(current => current === id ? null : id);
   }
   cerrarDescripcionPopover(): void { this.descripcionPopoverId.set(null); }
-  private filaSeleccionadaParaEditar(): VersionRow | undefined {
-    const selected = this.filteredRows().filter(row => this.selectedIds().has(row.id));
-    return selected.length === 1 ? selected[0] : undefined;
-  }
-  puedeEditarSeleccion = (): boolean => !!this.filaSeleccionadaParaEditar() && this.editingId() === null;
-  editarVersion(): void {
-    if (!this.puedeEditarSeleccion()) return;
-    const row = this.filaSeleccionadaParaEditar();
-    if (!row) return;
-    // El borrador se crea desde la fila elegida, sin depender de su código o posición.
-    // Así todas las versiones usan exactamente los mismos controles de edición en línea.
-    this.draft.set(structuredClone(row));
-    this.editingId.set(row.id);
-    this.editError.set('');
+  editarVersion(row: VersionRow): void {
+    void this.router.navigateByUrl('/procesos/catalogo-versiones/nuevo', {
+      state: { edicionVersion: true, registroVersion: structuredClone(row) }
+    });
   }
   updateDraft(field: 'anio' | 'proceso' | 'codigo' | 'nombre' | 'descripcion' | 'estado', value: string, desdeAutocompletado = false): void {
     const draft = this.draft();

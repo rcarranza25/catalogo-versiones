@@ -35,19 +35,19 @@ describe('ModalComponent', () => {
   it('en tema oscuro toma la ilustración de modals-dark, también la que llega por illustrationSrc', () => {
     fixture.componentRef.setInput('variant', 'approve');
     raiz.setAttribute('data-theme', 'light');
-    expect(modal.resolvedIllustrationSrc).toBe('assets/figma/modals/approve.svg');
+    expect(modal.resolvedIllustrationSrc).toBe('/assets/figma/modals/approve.svg');
 
     raiz.setAttribute('data-theme', 'dark');
-    expect(modal.resolvedIllustrationSrc).toBe('assets/figma/modals-dark/approve.svg');
+    expect(modal.resolvedIllustrationSrc).toBe('/assets/figma/modals-dark/approve.svg');
 
     fixture.componentRef.setInput('variant', 'custom');
     fixture.componentRef.setInput('illustrationSrc', 'assets/figma/modals/approve-multiple.svg');
-    expect(modal.resolvedIllustrationSrc).toBe('assets/figma/modals-dark/approve-multiple.svg');
+    expect(modal.resolvedIllustrationSrc).toBe('/assets/figma/modals-dark/approve-multiple.svg');
   });
 
   it('cada ilustración oscura es el mismo dibujo que la de claro, con la paleta oscura', async () => {
     raiz.setAttribute('data-theme', 'light');
-    const claras = new Set<string>(['assets/figma/modals/approve-multiple.svg']);
+    const claras = new Set<string>(['/assets/figma/modals/approve-multiple.svg']);
     for (const variante of VARIANTES) {
       fixture.componentRef.setInput('variant', variante);
       claras.add(modal.resolvedIllustrationSrc);
@@ -61,7 +61,7 @@ describe('ModalComponent', () => {
     };
 
     for (const clara of claras) {
-      const oscura = clara.replace('assets/figma/modals/', 'assets/figma/modals-dark/');
+      const oscura = clara.replace('/assets/figma/modals/', '/assets/figma/modals-dark/');
       expect(await leer(oscura)).withContext(`${oscura} no es ${clara} con la paleta oscura`).toBe(conPaletaOscura(await leer(clara)));
     }
   });

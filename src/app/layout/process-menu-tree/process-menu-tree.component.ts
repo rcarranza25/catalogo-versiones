@@ -129,10 +129,9 @@ export { DEFAULT_PROCESS_TREE, findProcessPathById } from '../../shared/utils/pr
             >
               @if (canExpand(node)) {
                 <siaf-icon
-                  class="mr-siaf-md shrink-0 text-[var(--sys-color-text-neutral-activated)] transition-transform duration-150"
-                  name="arrow_drop_down"
+                  class="mr-siaf-md shrink-0 text-[var(--sys-color-text-neutral-activated)]"
+                  [name]="isExpanded(node) ? 'arrow_drop_down' : 'arrow_right'"
                   [size]="level === 0 ? 24 : 20"
-                  [class.-rotate-90]="!isExpanded(node)"
                 />
               }
 
@@ -148,7 +147,9 @@ export { DEFAULT_PROCESS_TREE, findProcessPathById } from '../../shared/utils/pr
             </button>
 
             @if (canExpand(node) && isExpanded(node)) {
-              <ng-container *ngTemplateOutlet="treeTemplate; context: { $implicit: node.children || [], level: level + 1 }" />
+              <div [style.padding-left.px]="node.childrenPadding ?? null">
+                <ng-container *ngTemplateOutlet="treeTemplate; context: { $implicit: node.children || [], level: level + 1 }" />
+              </div>
             }
           </div>
         </div>

@@ -32,6 +32,8 @@ export interface ProcessMenuNode {
   groupLabel?: string;
   /** Conserva nodos para rutas y migas, pero evita que esta opción los despliegue en el menú. */
   showChildren?: boolean;
+  /** Sangría adicional, en píxeles, para el contenido desplegado de una rama. */
+  childrenPadding?: number;
   children?: ProcessMenuNode[];
 }
 
@@ -104,11 +106,22 @@ export const DEFAULT_PROCESS_TREE: ProcessMenuNode[] = [
             label: 'Catálogo de reportes de la APM',
             groupLabel: 'Gestión de asignación presupuestaria multianual',
             comingSoon: true,
+            children: [
+              { id: 'catalogo-reportes-apm-documentos', label: 'Documentos y registros de reportes', comingSoon: true },
+            ],
           },
-          { id: 'catalogo-impresion-apm', label: 'Catálogo de impresión de la APM', comingSoon: true },
+          {
+            id: 'catalogo-modificacion-apm',
+            label: 'Catálogo de modificación de la APM',
+            comingSoon: true,
+            children: [
+              { id: 'catalogo-modificacion-apm-documentos', label: 'Documentos y registros de modificación', comingSoon: true },
+            ],
+          },
           {
             id: 'catalogo-versiones',
-            label: 'Catálogo de Versiones',
+            label: 'Catálogo de versiones',
+            childrenPadding: 32,
             children: [
               {
                 id: 'catalogo-versiones-documentos',
@@ -127,6 +140,14 @@ export const DEFAULT_PROCESS_TREE: ProcessMenuNode[] = [
                 // versiones ya implementada.
                 moduleRoute: '/procesos/catalogo-versiones',
               },
+            ],
+          },
+          {
+            id: 'catalogo-archivos-apm',
+            label: 'Catálogo de archivos de la APM',
+            comingSoon: true,
+            children: [
+              { id: 'catalogo-archivos-apm-documentos', label: 'Documentos y registros de archivos', comingSoon: true },
             ],
           },
         ],
