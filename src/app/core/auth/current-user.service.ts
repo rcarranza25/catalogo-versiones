@@ -5,6 +5,10 @@ export type CurrentUser = {
   name: string;
   /** Nombre legible de la entidad/UE/unidad principal. */
   office: string;
+  /** Identidad visual de la sesión para encabezados, independiente del rol activo. */
+  displayName?: string;
+  /** Iniciales de la identidad visual de la sesión. */
+  initials?: string;
 
   // ── Identificadores ricos (modelo refactor v2) ──
   /** Id (uuid) de la entidad/pliego — para acotar consultas por ámbito propio. */

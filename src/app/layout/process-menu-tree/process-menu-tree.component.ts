@@ -222,8 +222,11 @@ export class ProcessMenuTreeComponent implements OnChanges, OnInit {
     return Boolean(this.query) || this.expandedIds.has(node.id);
   }
 
-  isNodeHighlighted(node: ProcessMenuNode, level: number): boolean {
-    return this.selectedId === node.id || (level === 0 && this.activeAncestorIds.has(node.id));
+  isNodeHighlighted(node: ProcessMenuNode, _level: number): boolean {
+    // Una rama activa se mantiene expandida para dar contexto, pero no hereda
+    // el estado de selección visual del elemento que se está consultando.
+    // Así «Clasificadores y catálogos» no compite con «Catálogo de versiones».
+    return this.selectedId === node.id;
   }
 
   onQuery(value: string): void {

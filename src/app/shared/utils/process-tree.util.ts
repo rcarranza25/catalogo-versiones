@@ -135,7 +135,7 @@ export const DEFAULT_PROCESS_TREE: ProcessMenuNode[] = [
               },
               {
                 id: 'catalogo-versiones-configurador',
-                label: 'Configurador de versiones',
+                label: 'Configuración de versiones',
                 // Es la entrada funcional del módulo y muestra la grilla de
                 // versiones ya implementada.
                 moduleRoute: '/procesos/catalogo-versiones',

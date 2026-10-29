@@ -12,6 +12,7 @@ import { CurrentUserService } from './current-user.service';
 import { PermissionService } from './permission.service';
 import { mapRolCodigo } from './role.model';
 import { NotificationsStateService } from '../realtime/notifications-state.service';
+import { buscarUsuarioPorPerfil } from '../../mock/usuarios-demo';
 
 /** Construye la oficina legible del usuario: "ENTIDAD - ÓRGANO DE LÍNEA".
  *  Para un usuario de U.E. su identidad operativa es la Unidad Ejecutora
@@ -175,9 +176,18 @@ export class AuthService {
 
   /** Vuelca todos los campos del perfil al CurrentUserService + Permissions. */
   private hydrateCurrentUser(p: PerfilItem): void {
+    const usuarioDemo = buscarUsuarioPorPerfil(p.id)?.usuario;
+    const displayName = usuarioDemo
+      ? `${usuarioDemo.nombres} ${usuarioDemo.apellidoPaterno} ${usuarioDemo.apellidoMaterno}`
+      : p.rol;
+    const initials = usuarioDemo
+      ? `${usuarioDemo.nombres[0] ?? ''}${usuarioDemo.apellidoPaterno[0] ?? ''}`.toUpperCase()
+      : p.rol.split(/\s+/).filter(Boolean).slice(0, 2).map(parte => parte[0]).join('').toUpperCase();
     this.currentUser.setUser({
       name: p.rol,
       office: buildOfficeLabel(p),
+      displayName,
+      initials,
       entidadId: p.entidadId ?? null,
       entidadSiglas: p.entidadSiglas ?? null,
       entidadCodigo: p.entidadCodigo ?? null,

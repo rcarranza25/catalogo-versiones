@@ -42,7 +42,7 @@ import { ADMIN_MENU_TREE } from '../../shared/utils/process-tree.util';
   ],
   template: `
     <main class="min-h-screen bg-[var(--sys-color-bg-surfaces-surface-lowest)] text-text">
-      <siaf-navbar class="sticky top-0 z-30 block" [initials]="iniciales()" [userName]="currentUser.name" [officeName]="currentUser.office" (menuClicked)="onNavbarMenuClicked()" />
+      <siaf-navbar class="sticky top-0 z-30 block" [initials]="iniciales()" [userName]="nombreUsuario()" [officeName]="currentUser.office" (menuClicked)="onNavbarMenuClicked()" />
 
       <aside class="fixed bottom-0 left-0 top-14 z-20 hidden lg:block">
         <siaf-sidebar
@@ -126,12 +126,15 @@ export class AppShellComponent implements OnInit {
   private readonly catalogosApi = inject(CatalogosApiService);
   readonly currentUser = inject(CurrentUserService);
 
-  /** Iniciales del avatar: las del rol activo («CR», «AP»), así cambian al cambiar de perfil. */
+  /** El avatar representa a la persona de la sesión, no al perfil que esté usando. */
   readonly iniciales = computed(() => {
-    const palabras = this.currentUser.user().name.trim().split(/\s+/).filter(Boolean);
+    const usuario = this.currentUser.user();
+    if (usuario.initials) return usuario.initials;
+    const palabras = usuario.name.trim().split(/\s+/).filter(Boolean);
     const letras = palabras.length > 1 ? palabras.slice(0, 2).map((p) => p[0]).join('') : (palabras[0] ?? '').slice(0, 2);
     return letras.toUpperCase();
   });
+  readonly nombreUsuario = computed(() => this.currentUser.user().displayName ?? this.currentUser.user().name);
 
   /**
    * El demo del Catálogo de Versiones registra datos propios; no inicia el

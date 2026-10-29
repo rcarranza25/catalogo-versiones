@@ -41,6 +41,8 @@
   --sys-shadow-elevation-6: 0 6px 10px rgb(0 0 0 / 0.14), 0 1px 18px rgb(0 0 0 / 0.12), 0 3px 5px rgb(0 0 0 / 0.2);
   /* Elevation 8 del Figma (menú). */
   --sys-shadow-elevation-8: 0 8px 10px rgb(0 0 0 / 0.14), 0 3px 14px rgb(0 0 0 / 0.12), 0 5px 5px rgb(0 0 0 / 0.2);
+  /* Elevation 12 del Figma (panel elevado). */
+  --sys-shadow-elevation-12: 0 5px 5px -3px rgb(0 0 0 / 0.2), 0 8px 10px 1px rgb(0 0 0 / 0.14), 0 3px 14px 2px rgb(0 0 0 / 0.12);
   /* Elevation 16 del Figma (side panel). */
   --sys-shadow-elevation-16: 0 16px 22px rgb(0 0 0 / 0.14), 0 6px 30px rgb(0 0 0 / 0.12), 0 8px 10px rgb(0 0 0 / 0.2);
   --sys-typography-font-family-monospace: 'Courier New', monospace;

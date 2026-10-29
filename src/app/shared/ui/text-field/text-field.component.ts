@@ -322,6 +322,7 @@ export class TextFieldComponent implements OnChanges, ControlValueAccessor {
 
   @Output() valueChange = new EventEmitter<string | number | string[]>();
   @Output() trailingAction = new EventEmitter<void>();
+  @Output() blurred = new EventEmitter<void>();
 
   focused = false;
   selectOpen = false;
@@ -682,6 +683,7 @@ export class TextFieldComponent implements OnChanges, ControlValueAccessor {
     }
 
     this.onTouched();
+    this.blurred.emit();
   }
 
   private emitValue(value: string | number | string[]): void {

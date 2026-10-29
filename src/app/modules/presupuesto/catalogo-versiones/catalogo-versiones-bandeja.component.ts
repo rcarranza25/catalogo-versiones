@@ -23,12 +23,16 @@ import type { DocumentsRecordsColumn } from '../../../shared/types/documents-rec
 
 type VersionRow = { id: number; anio: string; proceso: string; codigo: string; nombre: string; descripcion: string; editable: boolean; pliego: boolean; vigente: boolean; oficial: boolean; definitiva: boolean; disponible: boolean; estado: string; desde: string; hasta: string; auditadoEn: string; vinculada?: { anio: string; proceso: string; codigo: string; nombre: string; }; };
 type VersionDocumentRow = { id: number; documento: string; numero: string; tipoAccion: string; estado: string; sistema: string; fecha: string; entidad: string; };
+type ConditionKey = 'editable' | 'pliego' | 'vigente' | 'oficial' | 'definitiva' | 'disponible';
+type ConditionDraft = Pick<VersionRow, ConditionKey>;
+
+const CONDITION_KEYS: ConditionKey[] = ['editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible'];
 
 /** Estado deliberadamente mínimo para iniciar una demostración nueva. */
 const BASE_VERSION_ROWS: VersionRow[] = [
-  { id: 1, anio: '2026', proceso: 'M02.1.9.1 Asignación Presupuestaria Multianual', codigo: '1', nombre: 'Versión DGPP', descripcion: 'Versión inicial del proceso.', editable: true, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '05/07/2026', hasta: '-', auditadoEn: '05/07/2026 08:00' },
+  { id: 1, anio: '2026', proceso: 'M02.1.9.1 Asignación Presupuestaria Multianual', codigo: '1', nombre: 'Versión DGPP', descripcion: 'Versión inicial del proceso.', editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '05/07/2026', hasta: '-', auditadoEn: '05/07/2026 08:00' },
   { id: 2, anio: '2026', proceso: 'M02.1.9.1 Asignación Presupuestaria Multianual', codigo: '2', nombre: 'Versión DGPP borrador', descripcion: 'Borrador para revisión.', editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '05/07/2026', hasta: '-', auditadoEn: '05/07/2026 09:00' },
-  { id: 3, anio: '2026', proceso: 'M02.1.9.1 Asignación Presupuestaria Multianual', codigo: '3', nombre: 'Versión Conciliada por el Pliego', descripcion: 'Versión conciliada.', editable: true, pliego: true, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '15/07/2026', hasta: '-', auditadoEn: '15/07/2026 10:00' },
+  { id: 3, anio: '2026', proceso: 'M02.1.9.1 Asignación Presupuestaria Multianual', codigo: '3', nombre: 'Versión Conciliada por el Pliego', descripcion: 'Versión conciliada.', editable: false, pliego: true, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '15/07/2026', hasta: '-', auditadoEn: '15/07/2026 10:00' },
   { id: 4, anio: '2026', proceso: 'M02.1.9.1 Asignación Presupuestaria Multianual', codigo: '4', nombre: 'Versión aprobada MEF', descripcion: 'Versión aprobada.', editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '20/08/2026', hasta: '-', auditadoEn: '20/08/2026 11:00' },
 ];
 const DEMO_STORAGE_KEY = 'siaf.catalogo-versiones.demo.v2';
@@ -43,7 +47,7 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
     <main class="min-h-[calc(100vh-56px)] overflow-x-hidden bg-[var(--sys-color-bg-surfaces-surface-lowest)] text-text">
       <div class="w-full">
         <siaf-breadcrumb [items]="breadcrumbs" />
-        <siaf-page-header title="Catálogo de versiones" />
+        <siaf-page-header title="CONFIGURACIÓN DE VERSIONES" />
         <section class="w-full p-siaf-md">
           @if (false) {
             <article class="flex w-full min-w-0 flex-col rounded-siaf-md bg-surface">
@@ -136,45 +140,105 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
 
               <!-- Solo esta caja admite scroll horizontal; no se propaga al shell ni a los controles. -->
               <div class="min-w-0 max-w-full overflow-x-auto rounded-siaf-sm" aria-label="Grilla de versiones">
-                <table class="table-fixed border-collapse text-left text-sm" [style.width.px]="2860" [style.min-width.px]="2860">
+                <table class="versiones-grid table-fixed border-collapse text-left text-sm" [style.width.px]="anchoGrillaPx()" [style.min-width.px]="anchoGrillaPx()">
                   <!-- En una tabla fixed los anchos del segundo encabezado no determinan columnas: este colgroup es la fuente única de verdad. -->
                   <colgroup>
-                    @if (columnaVisible('anio')) { <col [style.width.px]="90" /> }
-                    @if (columnaVisible('proceso')) { <col [style.width.px]="280" /> }
+                    @if (columnaVisible('anio')) { <col [style.width.px]="70" /> }
+                    @if (columnaVisible('proceso')) { <col [style.width.px]="240" /> }
                     @if (columnaVisible('codigo')) { <col [style.width.px]="80" /> }
-                    @if (columnaVisible('nombre')) { <col [style.width.px]="280" /> }
+                    @if (columnaVisible('nombre')) { <col [style.width.px]="240" /> }
                     @if (columnaVisible('descripcion')) { <col [style.width.px]="320" /> }
                     @for (condition of condicionesVisibles(); track condition) { <col [style.width.px]="100" /> }
                     @for (column of vinculadasVisibles(); track column) { <col [style.width.px]="anchoColumnaVinculadaPx(column)" /> }
                     @if (columnaVisible('estado')) { <col [style.width.px]="170" /> }
                     @if (columnaVisible('desde')) { <col [style.width.px]="120" /> }
                     @if (columnaVisible('hasta')) { <col [style.width.px]="120" /> }
+                    <col [style.width.px]="112" />
                   </colgroup>
                   <thead class="bg-surface-high text-[10px] font-bold uppercase text-text">
                     <tr class="h-10 border-b border-[var(--sys-color-divider-default)]">
-                      @if (columnaVisible('anio')) { <th rowspan="2" class="w-[90px] px-siaf-md text-left">Año</th> } @if (columnaVisible('proceso')) { <th rowspan="2" class="w-[280px] px-siaf-md text-left">Proceso</th> } @if (columnaVisible('codigo')) { <th rowspan="2" class="w-[80px] px-siaf-md text-left">Código</th> } @if (columnaVisible('nombre')) { <th rowspan="2" class="w-[280px] px-siaf-md text-left">Nombre</th> } @if (columnaVisible('descripcion')) { <th rowspan="2" class="w-[320px] px-siaf-md text-left">Descripción</th> }
+                      @if (columnaVisible('anio')) { <th rowspan="2" class="w-[70px] px-siaf-md text-left">Año</th> } @if (columnaVisible('proceso')) { <th rowspan="2" class="w-[240px] px-siaf-md text-left">Proceso</th> } @if (columnaVisible('codigo')) { <th rowspan="2" class="w-[80px] px-siaf-md text-left">Código</th> } @if (columnaVisible('nombre')) { <th rowspan="2" class="w-[240px] px-siaf-md text-left">Nombre</th> } @if (columnaVisible('descripcion')) { <th rowspan="2" class="w-[320px] px-siaf-md text-left">Descripción</th> }
                       @if (condicionesVisibles().length) { <th [attr.colspan]="condicionesVisibles().length" class="condiciones-versiones-grupo px-siaf-md text-center">Condiciones de versión</th> }
                       @if (vinculadasVisibles().length) { <th [attr.colspan]="vinculadasVisibles().length" class="border-r border-[var(--sys-color-divider-strong)] px-siaf-md text-center">Versión vinculada</th> }
                       @if (columnaVisible('estado')) { <th rowspan="2" class="w-[170px] min-w-[170px] px-siaf-md text-left">Estado</th> } @if (columnaVisible('desde')) { <th rowspan="2" class="w-[120px] px-siaf-md text-left">Fecha desde</th> } @if (columnaVisible('hasta')) { <th rowspan="2" class="w-[120px] px-siaf-md text-left">Fecha hasta</th> }
+                      <th rowspan="2" class="acciones-versiones-fija acciones-versiones-cabecera w-[112px] px-siaf-xs text-center"><span class="sr-only">Acciones</span></th>
                     </tr>
                     <tr class="h-10 border-b border-[var(--sys-color-divider-default)]">@for (condition of condicionesVisibles(); track condition) { <th class="w-[100px] px-siaf-md text-left" [class.condicion-divider-inicio]="condition === 'editable'" [class.condicion-divider-fin]="condition === 'disponible'">{{ etiquetaColumna(condition) }}</th> } @for (column of vinculadasVisibles(); track column) { <th [class]="anchoColumnaVinculada(column)">{{ etiquetaColumna(column) }}</th> }</tr>
                   </thead>
                   <tbody>
                     @for (row of filteredRows(); track row.id) {
-                      <tr class="h-[58px] cursor-pointer border-b border-[var(--sys-color-divider-default)] hover:bg-[var(--sys-color-bg-states-light-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--sys-color-border-states-focus)]" role="button" tabindex="0" [attr.aria-label]="'Editar versión ' + row.codigo" (click)="editarVersion(row)" (keydown.enter)="editarVersion(row)" (keydown.space)="$event.preventDefault(); editarVersion(row)">
+                      <tr class="h-[58px] cursor-pointer border-b border-[var(--sys-color-divider-default)] hover:bg-[var(--sys-color-bg-states-light-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--sys-color-border-states-focus)]" [class.condiciones-en-edicion]="esEdicionCondiciones(row.id)" role="button" tabindex="0" [attr.aria-label]="'Editar versión ' + row.codigo" (click)="editarVersion(row)" (keydown.enter)="editarVersion(row)" (keydown.space)="$event.preventDefault(); editarVersion(row)">
                         @if (columnaVisible('anio')) { <td class="px-siaf-sm">{{ row.anio }}</td> }
                         @if (columnaVisible('proceso')) { <td class="whitespace-normal px-siaf-sm leading-[normal]">{{ row.proceso }}</td> }
                         @if (columnaVisible('codigo')) { <td class="px-siaf-sm">{{ row.codigo }}</td> }
                         @if (columnaVisible('nombre')) { <td class="whitespace-normal px-siaf-sm leading-[normal]">{{ row.nombre }}</td> }
                         @if (columnaVisible('descripcion')) { <td class="whitespace-normal px-siaf-sm leading-[normal]">{{ row.descripcion }}</td> }
-                        @for (condition of condicionesVisibles(); track condition) { <td class="px-siaf-sm text-center" [class.condicion-divider-inicio]="condition === 'editable'" [class.condicion-divider-fin]="condition === 'disponible'">@if ($any(row)[condition]) { <siaf-icon name="check" [size]="24" /> }</td> }
+                        @for (condition of condicionesVisibles(); track condition) {
+                          <td class="px-siaf-sm text-center" [class.condicion-divider-inicio]="condition === 'editable'" [class.condicion-divider-fin]="condition === 'disponible'">
+                            @if (esEdicionCondiciones(row.id)) {
+                              <input
+                                class="size-4 cursor-pointer accent-[var(--sys-color-icon-states-enabled)]"
+                                type="checkbox"
+                                [checked]="valorCondicionEnEdicion(condition)"
+                                [attr.aria-label]="etiquetaColumna(condition) + ' para versión ' + row.codigo"
+                                (click)="$event.stopPropagation()"
+                                (change)="actualizarCondicionDeFila(row, condition, $event)"
+                              />
+                            } @else if ($any(row)[condition]) { <siaf-icon name="check" [size]="24" /> }
+                          </td>
+                        }
                         @for (column of vinculadasVisibles(); track column) { <td [class]="claseCeldaVinculada(column)">{{ valorVinculado(row, column) }}</td> }
                         @if (columnaVisible('estado')) { <td class="px-siaf-sm"><siaf-status-tag [tone]="row.estado === 'Inactivo' ? 'default' : 'info'" appearance="soft" size="small" [icon]="row.estado === 'Inactivo' ? 'info' : 'check_circle'">{{ row.estado }}</siaf-status-tag></td> } @if (columnaVisible('desde')) { <td class="px-siaf-sm">{{ row.desde }}</td> } @if (columnaVisible('hasta')) { <td class="px-siaf-sm text-center">{{ row.hasta }}</td> }
+                        <td class="acciones-versiones-fija px-siaf-xs">
+                          <div class="flex items-center justify-center gap-1">
+                            @if (esEdicionCondiciones(row.id)) {
+                              <siaf-button
+                                variant="text"
+                                size="sm"
+                                icon="close"
+                                [iconOnly]="true"
+                                ariaLabel="Cancelar"
+                                siafTooltip="Cancelar"
+                                tooltipMode="always"
+                                [disabled]="guardandoCondiciones()"
+                                (click)="alternarEdicionCondiciones(row, $event)"
+                              />
+                              <siaf-button
+                                variant="text"
+                                size="sm"
+                                icon="check"
+                                [iconOnly]="true"
+                                ariaLabel="Aceptar"
+                                siafTooltip="Aceptar"
+                                tooltipMode="always"
+                                [loading]="guardandoCondiciones() && filaGuardandoCondiciones() === row.id"
+                                [disabled]="!puedeGrabarCondiciones(row) || (guardandoCondiciones() && filaGuardandoCondiciones() !== row.id)"
+                                (click)="solicitarGrabacionCondiciones(row, $event)"
+                              />
+                            } @else {
+                              <siaf-button
+                                variant="text"
+                                size="sm"
+                                icon="rule"
+                                [iconOnly]="true"
+                                ariaLabel="Editar condición de versión"
+                                siafTooltip="Editar condición de versión"
+                                tooltipMode="always"
+                                [disabled]="!puedeEditarCondiciones(row)"
+                                (click)="alternarEdicionCondiciones(row, $event)"
+                              />
+                            }
+                          </div>
+                        </td>
                       </tr>
                     }
                   </tbody>
                 </table>
               </div>
+
+              @if (errorCondiciones()) {
+                <p class="m-0 px-siaf-xs text-sm text-[var(--sys-color-text-error)]" role="alert">{{ errorCondiciones() }}</p>
+              }
 
               <siaf-pagination position="Bottom" [rowPage]="true" [page]="1" [pageSize]="10" [totalItems]="persistedFilteredRows().length" [totalPages]="1" />
             </div>
@@ -275,6 +339,30 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
         (canceled)="cerrarConfirmacionCancelacionFila()"
         (closed)="cerrarConfirmacionCancelacionFila()"
       />
+      <siaf-modal
+        [open]="confirmacionCancelacionCondicionesAbierta()"
+        variant="custom"
+        title="¿Está seguro(a) de cancelar la edición?"
+        description="Se perderán los cambios realizados."
+        cancelLabel="Cancelar"
+        confirmLabel="Aceptar"
+        confirmVariant="primary"
+        (confirmed)="confirmarCancelacionCondiciones()"
+        (canceled)="cerrarConfirmacionCancelacionCondiciones()"
+        (closed)="cerrarConfirmacionCancelacionCondiciones()"
+      />
+      <siaf-modal
+        [open]="confirmacionGrabacionCondicionesAbierta()"
+        variant="custom"
+        title="¿Está seguro(a) de grabar los cambios en las condiciones de versión?"
+        description=""
+        cancelLabel="Cancelar"
+        confirmLabel="Aceptar"
+        confirmVariant="primary"
+        (confirmed)="confirmarGrabacionCondiciones()"
+        (canceled)="cerrarConfirmacionGrabacionCondiciones()"
+        (closed)="cerrarConfirmacionGrabacionCondiciones()"
+      />
       <div class="fixed bottom-siaf-lg left-1/2 z-50 w-[calc(100%-32px)] max-w-[430px] -translate-x-1/2">
         <siaf-snackbar
           [open]="snackbarVisible()"
@@ -333,16 +421,72 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
       border-right: 1px solid var(--sys-color-divider-default) !important;
     }
 
+    /* La última columna se mantiene dentro del scroll de la tabla, pero su
+       propia superficie es siempre sólida para tapar por completo las demás
+       columnas cuando pasan por debajo. */
+    .acciones-versiones-fija {
+      position: sticky;
+      right: 0;
+      z-index: 2;
+      background-color: #fff !important;
+      /* Effects/elevation/e12 del UI Kit, expuesto como sombra CSS. El clip
+         conserva sólo la proyección izquierda para separar la columna fija
+         sin oscurecer los divisores horizontales. */
+      box-shadow: var(--sys-shadow-elevation-12);
+      clip-path: inset(0 0 0 -20px);
+      isolation: isolate;
+      overflow: visible;
+    }
+
+    /* En una tabla con border-collapse el box-shadow de una celda sticky se
+       compone debajo de las celdas vecinas. Esta capa reproduce la proyección
+       lateral de Elevation 12 por encima del contenido desplazable, sin
+       capturar eventos ni agregar una sombra inferior a cada fila. */
+    .acciones-versiones-fija::before {
+      content: '';
+      position: absolute;
+      z-index: 0;
+      top: 0;
+      bottom: 0;
+      left: -20px;
+      width: 20px;
+      pointer-events: none;
+      background: linear-gradient(to left, rgb(0 0 0 / 0.18), rgb(0 0 0 / 0.08) 38%, transparent 100%);
+    }
+
+    .acciones-versiones-fija > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .acciones-versiones-cabecera {
+      z-index: 5;
+      background-color: #e0e0e0 !important;
+      box-shadow: inset 0 -1px 0 var(--sys-color-divider-strong), var(--sys-shadow-elevation-12);
+    }
+
+    .versiones-grid tbody tr:hover > td {
+      background-color: #f7f7f7;
+    }
+
+    .versiones-grid tbody tr.condiciones-en-edicion > td,
+    .versiones-grid tbody tr.condiciones-en-edicion:hover > td {
+      background-color: #e8f1fa;
+    }
+
+    .versiones-grid tbody tr:hover > td.acciones-versiones-fija {
+      background-color: #f7f7f7 !important;
+    }
+
+    .versiones-grid tbody tr.condiciones-en-edicion > td.acciones-versiones-fija,
+    .versiones-grid tbody tr.condiciones-en-edicion:hover > td.acciones-versiones-fija {
+      background-color: #e8f1fa !important;
+    }
+
     :host ::ng-deep siaf-input.version-vinculada-codigo {
       display: block;
       width: 100%;
       min-width: 0;
-    }
-
-    :host ::ng-deep text-area-control textarea {
-      height: 48px;
-      max-height: 48px;
-      overflow-y: auto;
     }
 
     :host ::ng-deep siaf-breadcrumb nav,
@@ -392,8 +536,15 @@ export class CatalogoVersionesBandejaComponent {
   readonly confirmacionGrabacionAbierta = signal(false);
   readonly confirmacionReinicioDemoAbierta = signal(false);
   readonly confirmacionCancelacionFilaAbierta = signal(false);
+  readonly confirmacionCancelacionCondicionesAbierta = signal(false);
+  readonly confirmacionGrabacionCondicionesAbierta = signal(false);
   readonly descripcionPopoverId = signal<number | null>(null);
   readonly editError = signal('');
+  readonly filaEditandoCondiciones = signal<number | null>(null);
+  readonly borradorCondiciones = signal<ConditionDraft | null>(null);
+  readonly guardandoCondiciones = signal(false);
+  readonly filaGuardandoCondiciones = signal<number | null>(null);
+  readonly errorCondiciones = signal('');
   readonly columnasPanelAbierto = signal(false);
   readonly columnasExtendidas = signal(true);
   readonly columnasBorrador = signal<Set<string>>(new Set(['anio', 'proceso', 'codigo', 'nombre', 'editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible', 'vinculadaAnio', 'vinculadaProceso', 'vinculadaCodigo', 'vinculadaNombre', 'estado', 'desde', 'hasta']));
@@ -446,7 +597,15 @@ export class CatalogoVersionesBandejaComponent {
 
     try {
       const filasSesion = JSON.parse(sessionStorage.getItem(SESSION_STORAGE_KEY) ?? 'null');
-      if (Array.isArray(filasSesion) && filasSesion.length >= BASE_VERSION_ROWS.length) this.rows.set(filasSesion as VersionRow[]);
+      if (Array.isArray(filasSesion) && filasSesion.length >= BASE_VERSION_ROWS.length) {
+        // Ajusta sesiones creadas antes de esta regla sin modificar las
+        // versiones agregadas por la persona durante la demostración.
+        const normalizadas = (filasSesion as VersionRow[]).map(row =>
+          (row.id === 1 || row.id === 3) ? { ...row, editable: false } : row
+        );
+        this.rows.set(normalizadas);
+        this.persistirRows(normalizadas);
+      }
     } catch { /* Sin sesión previa, se conservan los cuatro registros iniciales. */ }
 
     const registro = history.state?.['registroVersion'] as VersionRow | undefined;
@@ -455,7 +614,7 @@ export class CatalogoVersionesBandejaComponent {
         const index = rows.findIndex(row => row.id === registro.id);
         return index >= 0 ? rows.map(row => row.id === registro.id ? registro : row) : [...rows, registro];
       });
-      this.mensajeSnackbar.set(history.state?.['edicionVersion'] ? 'Registro actualizado con éxito' : 'Registro agregado con éxito');
+      this.mensajeSnackbar.set(history.state?.['mensajeResultado'] ?? (history.state?.['edicionVersion'] ? 'Registro actualizado con éxito' : 'Registro agregado con éxito'));
       this.snackbarVisible.set(true);
       this.persistirRows();
     }
@@ -580,17 +739,138 @@ export class CatalogoVersionesBandejaComponent {
     return [{ label: 'Todos', value: '' }, ...unique.map(value => ({ label: value, value }))];
   }
   /** Los cambios viven durante la sesión actual; login la reinicia a cuatro filas. */
-  private persistirRows(): void {
-    if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(this.rows()));
+  private persistirRows(rows: VersionRow[] = this.rows()): void {
+    if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(rows));
   }
-  readonly condicionesVisibles = computed(() => ['editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible'].filter(key => this.columnaVisible(key)));
+  readonly condicionesVisibles = computed<ConditionKey[]>(() => CONDITION_KEYS.filter(key => this.columnaVisible(key)));
   readonly vinculadasVisibles = computed(() => ['vinculadaAnio', 'vinculadaProceso', 'vinculadaCodigo', 'vinculadaNombre'].filter(key => this.columnaVisible(key)));
+  readonly anchoGrillaPx = computed(() => {
+    const bases: Array<[string, number]> = [
+      ['anio', 70], ['proceso', 240], ['codigo', 80], ['nombre', 240], ['descripcion', 320],
+      ['estado', 170], ['desde', 120], ['hasta', 120]
+    ];
+    const anchoGeneral = bases.reduce((total, [key, width]) => total + (this.columnaVisible(key) ? width : 0), 0);
+    const anchoCondiciones = this.condicionesVisibles().length * 100;
+    const anchoVinculadas = this.vinculadasVisibles().reduce((total, key) => total + this.anchoColumnaVinculadaPx(key), 0);
+    return anchoGeneral + anchoCondiciones + anchoVinculadas + 112;
+  });
   etiquetaColumna(key: string): string { return ({ editable: 'Editable', pliego: 'Pliego', vigente: 'Vigente', oficial: 'Oficial', definitiva: 'Definitiva', disponible: 'Disponible', vinculadaAnio: 'Año', vinculadaProceso: 'Proceso', vinculadaCodigo: 'Código', vinculadaNombre: 'Nombre' } as Record<string, string>)[key] ?? key; }
   anchoColumnaVinculadaPx(key: string): number { return ({ vinculadaAnio: 80, vinculadaProceso: 300, vinculadaCodigo: 120, vinculadaNombre: 300 } as Record<string, number>)[key] ?? 0; }
   anchoColumnaVinculada(key: string): string { return `px-siaf-md text-left${key === 'vinculadaNombre' ? ' border-r border-[var(--sys-color-divider-strong)]' : ''}`; }
   claseCeldaVinculada(key: string): string { return `min-w-0 px-siaf-sm${key === 'vinculadaProceso' ? ' whitespace-normal leading-[normal]' : ''}${key === 'vinculadaNombre' ? ' border-r border-[var(--sys-color-divider-strong)] whitespace-nowrap' : ''}`; }
   valorVinculado(row: VersionRow, key: string): string { const link = this.editingId() === row.id ? this.draft()?.vinculada : row.vinculada; return ({ vinculadaAnio: link?.anio, vinculadaProceso: link?.proceso, vinculadaCodigo: link?.codigo, vinculadaNombre: link?.nombre } as Record<string, string | undefined>)[key] ?? ''; }
   private readonly todasLasColumnas = ['anio', 'proceso', 'codigo', 'nombre', 'editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible', 'vinculadaAnio', 'vinculadaProceso', 'vinculadaCodigo', 'vinculadaNombre', 'estado', 'desde', 'hasta'];
+  esEdicionCondiciones(id: number): boolean { return this.filaEditandoCondiciones() === id; }
+  puedeEditarCondiciones(row: VersionRow): boolean {
+    const editingId = this.filaEditandoCondiciones();
+    return !this.guardandoCondiciones() && (editingId === null || editingId === row.id);
+  }
+  valorCondicionEnEdicion(condition: ConditionKey): boolean { return this.borradorCondiciones()?.[condition] ?? false; }
+  alternarEdicionCondiciones(row: VersionRow, event: Event): void {
+    event.stopPropagation();
+    if (this.guardandoCondiciones()) return;
+    if (this.esEdicionCondiciones(row.id)) {
+      if (this.puedeGrabarCondiciones(row)) this.confirmacionCancelacionCondicionesAbierta.set(true);
+      else this.finalizarEdicionCondiciones();
+      return;
+    }
+    this.errorCondiciones.set('');
+    const draft = Object.fromEntries(CONDITION_KEYS.map(key => [key, row[key]])) as ConditionDraft;
+    this.filaEditandoCondiciones.set(row.id);
+    this.borradorCondiciones.set(draft);
+  }
+  actualizarCondicionDeFila(row: VersionRow, condition: ConditionKey, event: Event): void {
+    event.stopPropagation();
+    if (!this.esEdicionCondiciones(row.id) || this.guardandoCondiciones()) return;
+    const checked = (event.target as HTMLInputElement).checked;
+    const draft = this.borradorCondiciones();
+    if (!draft) return;
+    if (condition === 'disponible' && checked && draft.editable) {
+      this.errorCondiciones.set('Disponible no puede marcarse mientras Editable esté seleccionado.');
+      (event.target as HTMLInputElement).checked = false;
+      return;
+    }
+    const next = { ...draft, [condition]: checked } as ConditionDraft;
+    // La misma regla del formulario: Editable y Disponible son excluyentes.
+    if (condition === 'editable' && checked) next.disponible = false;
+    this.borradorCondiciones.set(next);
+    this.errorCondiciones.set('');
+  }
+  puedeGrabarCondiciones(row: VersionRow): boolean {
+    if (!this.esEdicionCondiciones(row.id) || this.guardandoCondiciones()) return false;
+    const draft = this.borradorCondiciones();
+    return !!draft && CONDITION_KEYS.some(key => draft[key] !== row[key]);
+  }
+  solicitarGrabacionCondiciones(row: VersionRow, event: Event): void {
+    event.stopPropagation();
+    if (!this.puedeGrabarCondiciones(row) || this.guardandoCondiciones()) return;
+    const draft = this.borradorCondiciones();
+    if (!draft) return;
+    const candidate = { ...row, ...draft };
+    const validationError = this.validarCondicionesDeFila(candidate);
+    if (validationError) {
+      this.errorCondiciones.set(validationError);
+      return;
+    }
+    this.confirmacionGrabacionCondicionesAbierta.set(true);
+  }
+  cerrarConfirmacionCancelacionCondiciones(): void { this.confirmacionCancelacionCondicionesAbierta.set(false); }
+  confirmarCancelacionCondiciones(): void {
+    this.confirmacionCancelacionCondicionesAbierta.set(false);
+    this.finalizarEdicionCondiciones();
+  }
+  cerrarConfirmacionGrabacionCondiciones(): void { this.confirmacionGrabacionCondicionesAbierta.set(false); }
+  confirmarGrabacionCondiciones(): void {
+    const id = this.filaEditandoCondiciones();
+    const row = id === null ? undefined : this.rows().find(current => current.id === id);
+    if (!row || !this.puedeGrabarCondiciones(row) || this.guardandoCondiciones()) {
+      this.confirmacionGrabacionCondicionesAbierta.set(false);
+      return;
+    }
+    const draft = this.borradorCondiciones();
+    if (!draft) return;
+    const candidate = { ...row, ...draft };
+    const validationError = this.validarCondicionesDeFila(candidate);
+    if (validationError) {
+      this.confirmacionGrabacionCondicionesAbierta.set(false);
+      this.errorCondiciones.set(validationError);
+      return;
+    }
+
+    this.guardandoCondiciones.set(true);
+    this.filaGuardandoCondiciones.set(row.id);
+    this.confirmacionGrabacionCondicionesAbierta.set(false);
+    this.errorCondiciones.set('');
+    try {
+      const saved = { ...candidate, auditadoEn: new Date().toLocaleString('es-PE') };
+      const nextRows = this.rows().map(current => current.id === row.id ? saved : current);
+      // Se persiste antes de mutar la señal: ante un error se mantiene la
+      // fila y el borrador para que la persona pueda reintentar el guardado.
+      this.persistirRows(nextRows);
+      this.rows.set(nextRows);
+      this.finalizarEdicionCondiciones();
+      this.mensajeSnackbar.set('Condiciones de versión actualizadas con éxito');
+      this.snackbarVisible.set(true);
+    } catch {
+      this.errorCondiciones.set('No se pudieron grabar las condiciones. Intente nuevamente.');
+    } finally {
+      this.guardandoCondiciones.set(false);
+      this.filaGuardandoCondiciones.set(null);
+    }
+  }
+  private finalizarEdicionCondiciones(): void {
+    this.filaEditandoCondiciones.set(null);
+    this.borradorCondiciones.set(null);
+    this.errorCondiciones.set('');
+  }
+  private validarCondicionesDeFila(row: VersionRow): string {
+    if (row.disponible && row.editable) return 'Disponible no puede marcarse mientras Editable esté seleccionado.';
+    const otra = (condition: ConditionKey) => this.rows().some(other => other.id !== row.id && other.anio === row.anio && other.proceso === row.proceso && other[condition]);
+    if (row.definitiva && otra('definitiva')) return 'Ya existe una versión marcada como Definitiva para el año y el proceso seleccionados.';
+    if (row.disponible && otra('disponible')) return 'Ya existe una versión marcada como Disponible para el año y el proceso seleccionados.';
+    if (row.vigente && otra('vigente')) return 'Ya existe una versión marcada como Vigente para el año y el proceso seleccionados.';
+    return '';
+  }
   crearVersion(): void { void this.router.navigateByUrl('/procesos/catalogo-versiones/nuevo'); }
   esFilaNueva(id: number): boolean { return this.filaNueva()?.id === id; }
   alternarDescripcionPopover(id: number): void {
@@ -598,6 +878,10 @@ export class CatalogoVersionesBandejaComponent {
   }
   cerrarDescripcionPopover(): void { this.descripcionPopoverId.set(null); }
   editarVersion(row: VersionRow): void {
+    // La fila de condiciones mantiene su propio borrador. Mientras exista,
+    // cualquier activación de una fila (ratón o teclado) debe conservarlo y
+    // no navegar al formulario de versión.
+    if (this.filaEditandoCondiciones() !== null) return;
     void this.router.navigateByUrl('/procesos/catalogo-versiones/nuevo', {
       state: { edicionVersion: true, registroVersion: structuredClone(row) }
     });
@@ -654,6 +938,7 @@ export class CatalogoVersionesBandejaComponent {
     if (!draft.codigo.trim()) return 'Debe completar el Código.';
     if (!draft.nombre.trim()) return 'Debe completar el Nombre.';
     if (!draft.descripcion.trim()) return 'Debe completar la Descripción.';
+    if (draft.descripcion.length > 500) return 'La descripción no puede exceder los 500 caracteres.';
     if (!this.esFilaNueva(id)) {
       const original = this.rows().find(row => row.id === id);
       if (original && JSON.stringify(draft) === JSON.stringify(original)) return 'Realice al menos un cambio para grabar.';
@@ -746,9 +1031,19 @@ export class CatalogoVersionesBandejaComponent {
       ? 'Solo puede existir una versión vigente por proceso y año.' : '';
   }
   private mensajeInactivacionBloqueada(row: VersionRow): string {
-    if (row.estado !== 'Inactivo') return '';
-    const tieneVinculoActivo = this.rows().some(other => other.id !== row.id && other.estado === 'Activo' && !!other.vinculada && this.esMismaVersionVinculada(row, other.vinculada));
-    return tieneVinculoActivo ? 'No se puede inactivar la versión porque está vinculada por una versión activa.' : '';
+    const original = this.rows().find(other => other.id === row.id);
+    if (!original || original.estado !== 'Activo' || row.estado !== 'Inactivo') return '';
+    const referenciasActivas = this.rows().filter(other =>
+      other.id !== row.id
+      && other.estado === 'Activo'
+      && !!other.vinculada
+      && this.esMismaVersionVinculada(original, other.vinculada)
+    );
+    if (!referenciasActivas.length) return '';
+    const identificaciones = referenciasActivas.map(version => `«${version.codigo} — ${version.nombre}»`);
+    return identificaciones.length === 1
+      ? `No se puede inactivar la versión porque está vinculada a la versión activa ${identificaciones[0]}.`
+      : `No se puede inactivar la versión porque está vinculada a las versiones activas ${identificaciones.join(', ')}.`;
   }
   private fechaSistema(): string { return new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date()); }
   private esMismaVersionVinculada(row: VersionRow, linked: NonNullable<VersionRow['vinculada']>): boolean {

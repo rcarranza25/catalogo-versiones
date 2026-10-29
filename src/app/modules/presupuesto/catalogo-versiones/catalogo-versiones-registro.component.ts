@@ -27,22 +27,25 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
   template: `
     <main class="min-h-[calc(100vh-56px)] overflow-x-hidden bg-[var(--sys-color-bg-surfaces-surface-lowest)] text-text">
       <siaf-breadcrumb [items]="breadcrumbs" />
-      <siaf-page-header title="Catálogo de versiones" />
+      <siaf-page-header title="CONFIGURACIÓN DE VERSIONES" />
 
       <section class="w-full p-siaf-md">
         <article class="w-full rounded-siaf-md bg-surface p-siaf-md">
           <header class="flex min-h-10 items-center justify-between gap-siaf-md">
-            <h2 class="m-0 text-base font-bold uppercase tracking-[0.02px] text-text">Registro de versiones</h2>
+            <h2 class="m-0 text-base font-bold uppercase tracking-[0.02px] text-text">AGREGAR REGISTRO DE VERSIÓN</h2>
             <div class="flex shrink-0 items-center gap-siaf-xs">
               <siaf-button variant="outline" (click)="cancelar()">Cancelar</siaf-button>
-              <siaf-button variant="accent" [disabled]="!puedeGrabar()" (click)="grabar()">Grabar</siaf-button>
+              <siaf-button variant="accent" [loading]="grabando()" (click)="grabar()">Grabar</siaf-button>
             </div>
           </header>
 
           <div class="mt-siaf-lg grid gap-siaf-lg">
+            @if (mensajeValidacion()) {
+              <siaf-alert tone="error" [title]="mensajeValidacion()" />
+            }
             <section class="grid gap-siaf-md">
               <h3 class="m-0 text-sm font-bold uppercase text-text">Datos de versión</h3>
-              <div class="max-w-[294px]"><siaf-input label="Año fiscal" [required]="true" [value]="anio()" (valueChange)="cambiarAnio($any($event))" /></div>
+              <div class="max-w-[294px]"><siaf-input label="Año fiscal" [required]="true" [autoSuccess]="false" [error]="errorAnio()" [value]="anio()" (valueChange)="cambiarAnio($any($event))" (blurred)="validarAnioAlSalir()" /></div>
               @if (procesoSeleccionado()) {
                 <section class="grid gap-siaf-md">
                   <div class="flex min-h-10 items-center justify-between gap-siaf-md">
@@ -68,10 +71,10 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
                 <empty-section title="Proceso" message="No se ha seleccionado ningún proceso. Haga clic en el botón para realizar una selección." (actionClicked)="abrirSelectorProceso()" />
               }
               <div class="grid gap-siaf-lg md:grid-cols-3">
-                <siaf-input class="md:col-span-1" label="Código" [required]="true" [value]="codigo()" (valueChange)="codigo.set($any($event))" />
-                <siaf-input class="md:col-span-2" label="Nombre" [required]="true" [value]="nombre()" (click)="completarDatosVersion()" (valueChange)="nombre.set($any($event))" />
+                <siaf-input class="md:col-span-1" label="Código" [required]="true" [autoSuccess]="false" [error]="errorCodigo()" [value]="codigo()" (valueChange)="cambiarCodigo($any($event))" (blurred)="validarCodigoAlSalir()" />
+                <siaf-input class="md:col-span-2" label="Nombre" [required]="true" [autoSuccess]="false" [disabled]="!procesoSeleccionado()" [error]="errorNombre()" [value]="nombre()" (click)="completarDatosVersion()" (valueChange)="cambiarNombre($any($event))" />
               </div>
-              <text-area-control placeholder="Descripción" [required]="true" [maxlength]="500" [value]="descripcion()" (valueChange)="descripcion.set($event)" />
+              <text-area-control placeholder="Descripción" [required]="true" [autoSuccess]="false" [error]="errorDescripcion()" [maxlength]="500" [value]="descripcion()" (valueChange)="cambiarDescripcion($event)" />
             </section>
 
             <section class="grid gap-siaf-md">
@@ -85,13 +88,6 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
                   <siaf-checkbox label="Disponible" [checked]="disponible()" [disabled]="editable()" (checkedChange)="cambiarDisponible($event)" />
                 </div>
               </div>
-              @if (conflictoDisponible()) {
-                <siaf-alert
-                  tone="error"
-                  title="No se puede grabar la versión"
-                  [description]="mensajeConflictoDisponible()"
-                />
-              }
             </section>
 
             @if (versionVinculadaSeleccionada()) {
@@ -105,7 +101,7 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
             } @else {
               <empty-section title="Versión vinculada" message="No se ha seleccionado ninguna versión. Haga clic en el botón para realizar una selección." [disabled]="!procesoSeleccionado()" (actionClicked)="abrirSelectorVersionVinculada()">
                 @if (!versionesVinculables().length && alertaVersionVinculadaVisible()) {
-                  <siaf-alert tone="info" title="No existe versión vinculada" description="No existen versiones disponibles que pueda seleccionar para este proceso." [showClose]="true" (closed)="cerrarAlertaVersionVinculada()" />
+                  <siaf-alert tone="info" title="No existen versiones disponibles para vincular." [showClose]="true" (closed)="cerrarAlertaVersionVinculada()" />
                 }
               </empty-section>
             }
@@ -113,7 +109,7 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
             <section class="grid gap-siaf-md">
               <h3 class="m-0 text-sm font-bold uppercase text-text">Vigencia de versión</h3>
               <div class="grid items-start gap-siaf-lg md:grid-cols-3">
-                <siaf-radio-group label="Estado" name="estado-version" [inline]="true" [disabled]="!esEdicionVersionDos" [options]="estados" [value]="estado()" (valueChange)="estado.set($event)" />
+                <siaf-radio-group label="Estado" name="estado-version" [inline]="true" [disabled]="!esEdicion" [options]="estados" [value]="estado()" (valueChange)="estado.set($event)" />
                 <siaf-date-time-picker label="Fecha desde" [fullWidth]="true" [defaultToToday]="false" [value]="fechaDesde()" [disabled]="!esEdicion" [hint]="!esEdicion ? 'Será asignada cuando se grabe el registro.' : ''" (valueChange)="fechaDesde.set($event)" />
                 <siaf-date-time-picker label="Fecha hasta" [fullWidth]="true" [defaultToToday]="false" [disabled]="true" [hint]="estado() === 'inactivo' ? 'Será asignada cuando se grabe el registro.' : ''" />
               </div>
@@ -165,13 +161,25 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
       <siaf-modal
         [open]="confirmacionGrabacionAbierta()"
         variant="custom"
-        title="¿Grabar versión?"
-        description="El registro se grabará."
+        title="¿Está seguro de grabar la versión de presupuesto?"
+        description=""
         illustrationSrc="assets/figma/modals/save_1.svg"
         [showIllustration]="true"
         (confirmed)="confirmarGrabacion()"
         (canceled)="cerrarConfirmacionGrabacion()"
         (closed)="cerrarConfirmacionGrabacion()"
+      />
+
+      <siaf-modal
+        [open]="confirmacionCancelacionAbierta()"
+        variant="custom"
+        [title]="tituloConfirmacionCancelacion()"
+        [description]="descripcionConfirmacionCancelacion()"
+        illustrationSrc="assets/figma/modals/cancel.svg"
+        [showIllustration]="true"
+        (confirmed)="confirmarCancelacion()"
+        (canceled)="cerrarConfirmacionCancelacion()"
+        (closed)="cerrarConfirmacionCancelacion()"
       />
     </main>
   `,
@@ -187,8 +195,6 @@ export class CatalogoVersionesRegistroComponent {
   private readonly router = inject(Router);
   private readonly registroEdicion = history.state?.['registroVersion'] as RegistroVersionState | undefined;
   readonly esEdicion = Boolean(history.state?.['edicionVersion'] && this.registroEdicion);
-  readonly codigoEdicion = String(this.registroEdicion?.codigo ?? history.state?.['codigoEdicion'] ?? '');
-  readonly esEdicionVersionDos = this.esEdicion && this.codigoEdicion === '2';
   readonly versionCincoActualizada = Boolean(history.state?.['versionCincoActualizada']);
   readonly versionCincoOficial = Boolean(history.state?.['versionCincoOficial']);
   readonly versionCincoDefinitiva = Boolean(history.state?.['versionCincoDefinitiva']);
@@ -220,6 +226,12 @@ export class CatalogoVersionesRegistroComponent {
   readonly selectorProcesoAbierto = signal(false);
   readonly selectorVersionVinculadaAbierto = signal(false);
   readonly confirmacionGrabacionAbierta = signal(false);
+  readonly confirmacionCancelacionAbierta = signal(false);
+  readonly grabando = signal(false);
+  readonly intentoGrabacion = signal(false);
+  readonly anioValidado = signal(false);
+  readonly codigoValidado = signal(false);
+  readonly mensajeValidacion = signal('');
   readonly busquedaProceso = signal('');
   readonly procesoTemporalIds = signal<string[]>([]);
   readonly procesoSeleccionado = signal<ProcesoDemo | null>(this.esEdicion ? this.procesos.find(proceso => this.registroEdicion?.proceso.startsWith(`${proceso.codigo} `)) ?? null : null);
@@ -230,6 +242,8 @@ export class CatalogoVersionesRegistroComponent {
   readonly versionVinculadaTemporalIds = signal<string[]>([]);
   readonly alertaVersionVinculadaVisible = signal(false);
   readonly conflictoDisponible = signal<RegistroVersionState | null>(null);
+  readonly tituloConfirmacionCancelacion = computed(() => this.esEdicion ? '¿Está seguro(a) de cancelar la modificación?' : '¿Está seguro(a) de cancelar el registro?');
+  readonly descripcionConfirmacionCancelacion = computed(() => this.esEdicion ? 'Se perderán los cambios realizados.' : 'Se perderán los datos ingresados.');
   readonly procesosFiltrados = computed(() => {
     const termino = this.busquedaProceso().trim().toLowerCase();
     return !termino ? this.procesos : this.procesos.filter(({ codigo, nombre }) => `${codigo} ${nombre}`.toLowerCase().includes(termino));
@@ -274,14 +288,10 @@ export class CatalogoVersionesRegistroComponent {
   readonly definitiva = signal(this.registroEdicion?.definitiva ?? false);
   readonly disponible = signal(this.registroEdicion?.disponible ?? false);
   readonly estado = signal(this.registroEdicion?.estado.toLowerCase() ?? 'activo'); readonly fechaDesde = signal(this.fechaParaInput(this.registroEdicion?.desde) ?? '');
-  readonly puedeGrabar = computed(() => Boolean(
-    this.procesoSeleccionado()
-    && this.codigo().trim()
-    && this.nombre().trim()
-    && this.descripcion().trim()
-    && this.estado()
-    && (!this.esEdicion || this.fechaDesde())
-  ));
+  readonly errorAnio = computed(() => this.errorDeCampo('anio'));
+  readonly errorCodigo = computed(() => this.errorDeCampo('codigo'));
+  readonly errorNombre = computed(() => this.errorDeCampo('nombre'));
+  readonly errorDescripcion = computed(() => this.errorDeCampo('descripcion'));
 
   abrirSelectorProceso(): void {
     this.busquedaProceso.set('');
@@ -339,27 +349,50 @@ export class CatalogoVersionesRegistroComponent {
 
   cambiarAnio(value: string): void {
     this.anio.set(value);
+    this.anioValidado.set(false);
+    this.mensajeValidacion.set('');
     this.limpiarVersionVinculada();
+  }
+
+  cambiarCodigo(value: string): void { this.codigo.set(value); this.codigoValidado.set(false); this.mensajeValidacion.set(''); }
+  cambiarNombre(value: string): void { this.nombre.set(value); this.mensajeValidacion.set(''); }
+  cambiarDescripcion(value: string): void { this.descripcion.set(value); this.mensajeValidacion.set(''); }
+  validarAnioAlSalir(): void {
+    this.anioValidado.set(true);
+    const mensaje = this.anio().trim() && !this.esAnioValido() ? 'El año debe ser un valor numérico de cuatro dígitos.' : '';
+    this.mensajeValidacion.set(mensaje);
+  }
+  validarCodigoAlSalir(): void {
+    this.codigoValidado.set(true);
+    const mensaje = this.codigo().trim() && !this.esCodigoValido() ? 'El código debe ser un valor numérico mayor que cero.' : '';
+    this.mensajeValidacion.set(mensaje);
   }
 
   completarDatosVersion(): void {
     if (this.esEdicion) return;
     this.nombre.set(this.procesoSeleccionado()?.codigo === 'M02.1.9.2' ? 'Versión Programación APM Aprobada' : 'Versión aprobada PCM');
-    this.descripcion.set(this.procesoSeleccionado()?.codigo === 'M02.1.9.2' ? 'Asignación presupuestal periodo 2027-2029' : 'Versión final del presupuesto operativo para el ejercicio fiscal 2026. Integra los ajustes derivados de la proyección de ventas, la optimización integral de costes directos y la redistribución estratégica de recursos en marketing e infraestructura tecnológica. Se contempla una reserva para contingencias ante la volatilidad del tipo de cambio e inflación prevista. Documento formalmente revisado y validado por el área de finanzas para su presentación oficial y aprobación por parte de la alta dirección.');
+    this.descripcion.set(this.procesoSeleccionado()?.codigo === 'M02.1.9.2' ? 'Asignación presupuestal periodo 2027-2029' : 'Versión final del presupuesto operativo para el ejercicio fiscal 2026. Integra ajustes derivados de la proyección de ventas, la optimización de costes directos y la redistribución de recursos en marketing e infraestructura tecnológica. Contempla una reserva para contingencias ante la volatilidad del tipo de cambio y la inflación prevista. Documento revisado y validado por el área de finanzas para su presentación y aprobación por la alta dirección.');
   }
 
   grabar(): void {
-    if (!this.puedeGrabar()) return;
+    if (this.grabando()) return;
+    this.intentoGrabacion.set(true);
     this.actualizarRegistrosGrabados();
-    const conflicto = this.buscarConflictoDisponible();
-    this.conflictoDisponible.set(conflicto);
-    if (conflicto) return;
+    const mensaje = this.validarParaGrabar();
+    this.mensajeValidacion.set(mensaje);
+    if (mensaje) return;
+    if (this.esEdicion) { this.confirmarGrabacion(); return; }
     this.confirmacionGrabacionAbierta.set(true);
   }
 
   cerrarConfirmacionGrabacion(): void { this.confirmacionGrabacionAbierta.set(false); }
 
   confirmarGrabacion(): void {
+    if (this.grabando()) return;
+    const mensaje = this.validarParaGrabar();
+    this.mensajeValidacion.set(mensaje);
+    if (mensaje) { this.confirmacionGrabacionAbierta.set(false); return; }
+    this.grabando.set(true);
     this.confirmacionGrabacionAbierta.set(false);
     const proceso = this.procesoSeleccionado()!;
     const registro: RegistroVersionState = {
@@ -390,12 +423,13 @@ export class CatalogoVersionesRegistroComponent {
       state: {
         registroVersion: registro,
         edicionVersion: this.esEdicion,
+        mensajeResultado: this.esEdicion ? 'Registro actualizado con éxito' : 'La versión de presupuesto se registró correctamente.',
       }
     });
   }
 
-  cambiarEditable(checked: boolean): void { this.editable.set(checked); if (checked) this.disponible.set(false); this.conflictoDisponible.set(null); }
-  cambiarDisponible(checked: boolean): void { if (!this.editable()) this.disponible.set(checked); this.conflictoDisponible.set(null); }
+  cambiarEditable(checked: boolean): void { this.editable.set(checked); if (checked) this.disponible.set(false); this.limpiarMensajeValidacion(); }
+  cambiarDisponible(checked: boolean): void { if (!this.editable()) this.disponible.set(checked); this.limpiarMensajeValidacion(); }
 
   private limpiarVersionVinculada(): void {
     this.versionVinculadaSeleccionada.set(null);
@@ -433,6 +467,90 @@ export class CatalogoVersionesRegistroComponent {
     } : null;
   }
 
+  private errorDeCampo(field: 'anio' | 'codigo' | 'nombre' | 'descripcion'): string {
+    const required = this.intentoGrabacion() && (
+      (field === 'anio' && !this.anio().trim())
+      || (field === 'codigo' && !this.codigo().trim())
+      || (field === 'nombre' && !this.nombre().trim())
+      || (field === 'descripcion' && !this.descripcion().trim())
+    );
+    if (required) return ' ';
+    if (field === 'anio' && (this.anioValidado() || this.intentoGrabacion()) && this.anio().trim() && !this.esAnioValido()) return 'El año debe ser un valor numérico de cuatro dígitos.';
+    if (field === 'codigo' && (this.codigoValidado() || this.intentoGrabacion()) && this.codigo().trim() && !this.esCodigoValido()) return 'El código debe ser un valor numérico mayor que cero.';
+    if (field === 'descripcion' && this.descripcion().length > 500) return 'La descripción no puede exceder los 500 caracteres.';
+    return '';
+  }
+
+  private esAnioValido(): boolean { return /^\d{4}$/.test(this.anio().trim()); }
+  private esCodigoValido(): boolean { return /^\d+$/.test(this.codigo().trim()) && Number(this.codigo().trim()) > 0; }
+  private procesoActual(): string { const proceso = this.procesoSeleccionado(); return proceso ? `${proceso.codigo} ${proceso.nombre}` : ''; }
+  private validarParaGrabar(): string {
+    if (!this.procesoSeleccionado()) return 'Debe seleccionar un proceso.';
+    if (!this.anio().trim() || !this.codigo().trim() || !this.nombre().trim() || !this.descripcion().trim()) return 'Debe completar los campos obligatorios.';
+    if (this.descripcion().length > 500) return 'La descripción no puede exceder los 500 caracteres.';
+    if (!this.esAnioValido()) return 'El año debe ser un valor numérico de cuatro dígitos.';
+    if (!this.esCodigoValido()) return 'El código debe ser un valor numérico mayor que cero.';
+
+    const proceso = this.procesoActual(); const idActual = this.registroEdicion?.id;
+    const comparables = this.registrosGrabados().filter(registro => registro.id !== idActual && registro.anio.trim() === this.anio().trim() && registro.proceso === proceso);
+    if (comparables.some(registro => registro.codigo === this.codigo().trim())) return 'Ya existe una versión registrada con el mismo año, proceso y código.';
+    if (comparables.some(registro => registro.nombre === this.nombre().trim())) return 'Ya existe una versión con el mismo nombre para el año y el proceso seleccionados.';
+    if (comparables.some(registro => registro.descripcion === this.descripcion().trim())) return 'Ya existe una versión con la misma descripción para el año y el proceso seleccionados.';
+    if (this.definitiva() && comparables.some(registro => registro.definitiva)) return 'Ya existe una versión marcada como Definitiva para el año y el proceso seleccionados.';
+    if (this.disponible() && comparables.some(registro => registro.disponible)) return 'Ya existe una versión marcada como Disponible para el año y el proceso seleccionados.';
+    if (this.vigente() && comparables.some(registro => registro.vigente)) return 'Ya existe una versión marcada como Vigente para el año y el proceso seleccionados.';
+    const mensajeInactivacion = this.mensajeInactivacionBloqueada();
+    if (mensajeInactivacion) return mensajeInactivacion;
+    return '';
+  }
+
+  /** RN-GEN-0009: una baja no puede dejar activa una versión que la referencia. */
+  private mensajeInactivacionBloqueada(): string {
+    if (!this.esEdicion || this.registroEdicion?.estado !== 'Activo' || this.estado() !== 'inactivo') return '';
+
+    const referenciasActivas = this.registrosGrabados().filter(registro =>
+      registro.id !== this.registroEdicion!.id
+      && registro.estado === 'Activo'
+      && !!registro.vinculada
+      && registro.vinculada.anio === this.registroEdicion!.anio
+      && registro.vinculada.proceso === this.registroEdicion!.proceso
+      && registro.vinculada.codigo === this.registroEdicion!.codigo
+      && registro.vinculada.nombre === this.registroEdicion!.nombre
+    );
+
+    if (!referenciasActivas.length) return '';
+    const identificaciones = referenciasActivas.map(registro => `«${registro.codigo} — ${registro.nombre}»`);
+    return identificaciones.length === 1
+      ? `No se puede inactivar la versión porque está vinculada a la versión activa ${identificaciones[0]}.`
+      : `No se puede inactivar la versión porque está vinculada a las versiones activas ${identificaciones.join(', ')}.`;
+  }
+  private limpiarMensajeValidacion(): void { this.conflictoDisponible.set(null); this.mensajeValidacion.set(''); }
+  private tieneCambiosPendientes(): boolean {
+    const proceso = this.procesoActual();
+    const vinculada = this.versionVinculadaSeleccionada();
+    const mismaVinculada = (actual?: RegistroVersionState['vinculada']) =>
+      (!vinculada && !actual) || (!!vinculada && !!actual
+        && vinculada.anio === actual.anio && vinculada.proceso === actual.proceso
+        && vinculada.codigo === actual.codigo && vinculada.nombre === actual.nombre);
+    if (!this.esEdicion) {
+      return Boolean(this.anio().trim() !== '2026' || proceso || this.codigo().trim() || this.nombre().trim() || this.descripcion().trim()
+        || this.editable() || this.pliego() || this.disponible() || this.definitiva() || this.vigente() !== true
+        || this.estado() !== 'activo' || this.fechaDesde() || vinculada);
+    }
+    const inicial = this.registroEdicion!;
+    return this.anio().trim() !== inicial.anio
+      || proceso !== inicial.proceso
+      || this.codigo().trim() !== inicial.codigo
+      || this.nombre().trim() !== inicial.nombre
+      || this.descripcion().trim() !== inicial.descripcion
+      || this.editable() !== inicial.editable || this.pliego() !== inicial.pliego
+      || this.vigente() !== inicial.vigente || this.oficial() !== inicial.oficial
+      || this.definitiva() !== inicial.definitiva || this.disponible() !== inicial.disponible
+      || this.estado() !== inicial.estado.toLowerCase()
+      || this.fechaDesde() !== (this.fechaParaInput(inicial.desde) ?? '')
+      || !mismaVinculada(inicial.vinculada);
+  }
+
   private buscarConflictoDisponible(): RegistroVersionState | null {
     if (!this.disponible() || this.estado() !== 'activo') return null;
     const proceso = this.procesoSeleccionado();
@@ -467,5 +585,10 @@ export class CatalogoVersionesRegistroComponent {
     return anio && mes && dia ? `${anio}-${mes}-${dia}` : null;
   }
 
-  cancelar(): void { void this.router.navigateByUrl('/procesos/catalogo-versiones'); }
+  cancelar(): void {
+    if (this.tieneCambiosPendientes()) { this.confirmacionCancelacionAbierta.set(true); return; }
+    void this.router.navigateByUrl('/procesos/catalogo-versiones');
+  }
+  cerrarConfirmacionCancelacion(): void { this.confirmacionCancelacionAbierta.set(false); }
+  confirmarCancelacion(): void { this.confirmacionCancelacionAbierta.set(false); void this.router.navigateByUrl('/procesos/catalogo-versiones'); }
 }

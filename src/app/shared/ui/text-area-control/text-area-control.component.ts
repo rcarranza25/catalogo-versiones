@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, inject, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, EventEmitter, inject, Input, OnChanges, Output, SimpleChanges, ViewChild } from '@angular/core';
 
 export type TextAreaControlState = 'enabled' | 'error' | 'success';
 
@@ -70,8 +70,9 @@ export type TextAreaControlState = 'enabled' | 'error' | 'success';
             </span>
           }
           <textarea
-            class="min-h-11 flex-1 resize-none bg-transparent text-sm leading-6 tracking-[0.0249px] text-[var(--sys-color-text-neutral-medium)] outline-none placeholder:text-[var(--sys-color-text-neutral-low)] disabled:cursor-not-allowed disabled:text-[var(--sys-color-text-neutral-disabled)]"
-            [attr.maxlength]="maxlength"
+            #textarea
+            class="min-h-[72px] w-full flex-1 resize-none overflow-hidden bg-transparent text-sm leading-6 tracking-[0.0249px] text-[var(--sys-color-text-neutral-medium)] outline-none placeholder:text-[var(--sys-color-text-neutral-low)] disabled:cursor-not-allowed disabled:text-[var(--sys-color-text-neutral-disabled)]"
+            [maxLength]="maxlength"
             [placeholder]="floatingLabel || required ? '' : placeholderText"
             [attr.aria-required]="required"
             [attr.aria-invalid]="effectiveState === 'error' ? 'true' : null"
@@ -91,8 +92,9 @@ export type TextAreaControlState = 'enabled' | 'error' | 'success';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class TextAreaControlComponent implements OnChanges {
+export class TextAreaControlComponent implements AfterViewInit, OnChanges {
   private readonly cdr = inject(ChangeDetectorRef);
+  @ViewChild('textarea') private textarea?: ElementRef<HTMLTextAreaElement>;
 
   @Input() title = '';
   @Input() placeholder = '';
@@ -104,6 +106,8 @@ export class TextAreaControlComponent implements OnChanges {
   @Input() required = false;
   @Input() error = '';
   @Input() state: TextAreaControlState = 'enabled';
+  /** Evita que un valor precargado se muestre como validación exitosa. */
+  @Input() autoSuccess = true;
 
   @Output() valueChange = new EventEmitter<string>();
 
@@ -115,8 +119,11 @@ export class TextAreaControlComponent implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['value']) {
       this.charCount = (this.value ?? '').length;
+      queueMicrotask(() => this.ajustarAltura());
     }
   }
+
+  ngAfterViewInit(): void { this.ajustarAltura(); }
 
   get hasValue(): boolean {
     return (this.value ?? '').length > 0;
@@ -176,7 +183,7 @@ export class TextAreaControlComponent implements OnChanges {
       return 'error';
     }
 
-    if (this.state === 'success' || (this.hasValue && !this.focused)) {
+    if (this.state === 'success' || (this.autoSuccess && this.hasValue && !this.focused)) {
       return 'success';
     }
 
@@ -215,9 +222,20 @@ export class TextAreaControlComponent implements OnChanges {
   }
 
   onInput(event: Event): void {
-    const value = (event.target as HTMLTextAreaElement).value;
+    const element = event.target as HTMLTextAreaElement;
+    // maxlength cubre escritura y pegado en el navegador. El recorte explícito
+    // protege también implementaciones que no lo apliquen durante un pegado.
+    const value = element.value.slice(0, this.maxlength);
+    if (element.value !== value) element.value = value;
     this.charCount = value.length;
     this.valueChange.emit(value);
+    this.ajustarAltura(element);
     this.cdr.markForCheck();
+  }
+
+  private ajustarAltura(element = this.textarea?.nativeElement): void {
+    if (!element) return;
+    element.style.height = 'auto';
+    element.style.height = `${Math.max(72, element.scrollHeight)}px`;
   }
 }
