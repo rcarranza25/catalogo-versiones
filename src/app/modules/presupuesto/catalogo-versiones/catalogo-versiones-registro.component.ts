@@ -14,6 +14,7 @@ import { RadioComponent } from '../../../shared/ui/radio/radio.component';
 import { SummaryCardComponent, SummaryCardField } from '../../../shared/ui/summary-card/summary-card.component';
 import { TextAreaControlComponent } from '../../../shared/ui/text-area-control/text-area-control.component';
 import { TextFieldComponent } from '../../../shared/ui/text-field/text-field.component';
+import { descripcionDemoVersion, nombreDemoVersion, sincronizarNombresDemo } from './catalogo-versiones-demo.data';
 
 type ProcesoDemo = { id: string; codigo: string; nombre: string };
 type VersionVinculadaDemo = { id: string; anio: string; proceso: string; codigo: string; nombre: string };
@@ -79,13 +80,14 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
 
             <section class="grid gap-siaf-md">
               <h3 class="m-0 text-sm font-bold uppercase text-text">Condiciones de versión</h3>
-              <div class="grid gap-siaf-xs sm:grid-cols-2 lg:grid-cols-6 lg:gap-siaf-lg">
-                <siaf-checkbox label="Editable" [checked]="editable()" (checkedChange)="cambiarEditable($event)" />
-                <siaf-checkbox label="Pliego" [checked]="pliego()" (checkedChange)="pliego.set($event)" />
-                <siaf-checkbox label="Vigente" [checked]="vigente()" (checkedChange)="vigente.set($event)" />
-                <siaf-checkbox label="Definitiva" [checked]="definitiva()" (checkedChange)="definitiva.set($event)" />
+              <div class="grid grid-cols-1 gap-siaf-xs sm:grid-cols-2 lg:grid-cols-3 lg:gap-siaf-lg 2xl:grid-cols-6">
+                <siaf-checkbox label="Editable" [checked]="editable()" [disabled]="esEdicion" (checkedChange)="cambiarEditable($event)" />
+                <siaf-checkbox label="Pliego" [checked]="pliego()" [disabled]="esEdicion" (checkedChange)="pliego.set($event)" />
+                <siaf-checkbox label="Vigente" [checked]="vigente()" [disabled]="esEdicion" (checkedChange)="vigente.set($event)" />
+                <siaf-checkbox label="Oficial" [checked]="oficial()" [disabled]="esEdicion" (checkedChange)="oficial.set($event)" />
+                <siaf-checkbox label="Definitiva" [checked]="definitiva()" [disabled]="esEdicion" (checkedChange)="definitiva.set($event)" />
                 <div>
-                  <siaf-checkbox label="Disponible" [checked]="disponible()" [disabled]="editable()" (checkedChange)="cambiarDisponible($event)" />
+                  <siaf-checkbox label="Disponible" [checked]="disponible()" [disabled]="esEdicion || editable()" (checkedChange)="cambiarDisponible($event)" />
                 </div>
               </div>
             </section>
@@ -370,8 +372,10 @@ export class CatalogoVersionesRegistroComponent {
 
   completarDatosVersion(): void {
     if (this.esEdicion) return;
-    this.nombre.set(this.procesoSeleccionado()?.codigo === 'M02.1.9.2' ? 'Versión Programación APM Aprobada' : 'Versión aprobada PCM');
-    this.descripcion.set(this.procesoSeleccionado()?.codigo === 'M02.1.9.2' ? 'Asignación presupuestal periodo 2027-2029' : 'Versión final del presupuesto operativo para el ejercicio fiscal 2026. Integra ajustes derivados de la proyección de ventas, la optimización de costes directos y la redistribución de recursos en marketing e infraestructura tecnológica. Contempla una reserva para contingencias ante la volatilidad del tipo de cambio y la inflación prevista. Documento revisado y validado por el área de finanzas para su presentación y aprobación por la alta dirección.');
+    const proceso = this.procesoSeleccionado();
+    if (!proceso) return;
+    this.nombre.set(nombreDemoVersion(this.anio(), `${proceso.codigo} ${proceso.nombre}`, this.codigo()) ?? '');
+    this.descripcion.set(descripcionDemoVersion(this.anio(), `${proceso.codigo} ${proceso.nombre}`, this.codigo()) ?? 'Versión final del presupuesto operativo para el ejercicio fiscal 2026. Integra ajustes derivados de la proyección de ventas, la optimización de costes directos y la redistribución de recursos en marketing e infraestructura tecnológica. Contempla una reserva para contingencias ante la volatilidad del tipo de cambio y la inflación prevista. Documento revisado y validado por el área de finanzas para su presentación y aprobación por la alta dirección.');
   }
 
   grabar(): void {
@@ -443,7 +447,9 @@ export class CatalogoVersionesRegistroComponent {
   private cargarRegistrosGrabados(): RegistroVersionState[] {
     try {
       const registros = JSON.parse(sessionStorage.getItem(SESSION_STORAGE_KEY) ?? '[]');
-      return Array.isArray(registros) ? registros as RegistroVersionState[] : [];
+      const normalizados = Array.isArray(registros) ? sincronizarNombresDemo(registros as RegistroVersionState[]) : [];
+      if (normalizados.length) sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(normalizados));
+      return normalizados;
     } catch {
       return [];
     }
@@ -460,7 +466,6 @@ export class CatalogoVersionesRegistroComponent {
       item.anio === vinculada.anio
       && item.proceso === vinculada.proceso
       && item.codigo === vinculada.codigo
-      && item.nombre === vinculada.nombre
     );
     return registro ? {
       id: String(registro.id), anio: registro.anio, proceso: registro.proceso, codigo: registro.codigo, nombre: registro.nombre,
@@ -515,7 +520,6 @@ export class CatalogoVersionesRegistroComponent {
       && registro.vinculada.anio === this.registroEdicion!.anio
       && registro.vinculada.proceso === this.registroEdicion!.proceso
       && registro.vinculada.codigo === this.registroEdicion!.codigo
-      && registro.vinculada.nombre === this.registroEdicion!.nombre
     );
 
     if (!referenciasActivas.length) return '';
