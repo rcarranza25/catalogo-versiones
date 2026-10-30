@@ -172,7 +172,11 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
                         @if (columnaVisible('proceso')) { <td class="whitespace-normal px-siaf-sm leading-[normal]">{{ row.proceso }}</td> }
                         @if (columnaVisible('codigo')) { <td class="px-siaf-sm">{{ row.codigo }}</td> }
                         @if (columnaVisible('nombre')) { <td class="whitespace-normal px-siaf-sm leading-[normal]">{{ row.nombre }}</td> }
-                        @if (columnaVisible('descripcion')) { <td class="whitespace-normal px-siaf-sm leading-[normal]">{{ row.descripcion }}</td> }
+                        @if (columnaVisible('descripcion')) {
+                          <td class="px-siaf-sm align-top">
+                            <span class="descripcion-resumida" [siafTooltip]="row.descripcion" tooltipMode="always">{{ row.descripcion }}</span>
+                          </td>
+                        }
                         @for (condition of condicionesVisibles(); track condition) {
                           <td class="px-siaf-sm text-center" [class.condicion-divider-inicio]="condition === 'editable'" [class.condicion-divider-fin]="condition === 'disponible'">
                             @if (esEdicionCondiciones(row.id)) {
@@ -187,7 +191,15 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
                             } @else if ($any(row)[condition]) { <siaf-icon name="check" [size]="24" /> }
                           </td>
                         }
-                        @for (column of vinculadasVisibles(); track column) { <td [class]="claseCeldaVinculada(column)">{{ valorVinculado(row, column) }}</td> }
+                        @for (column of vinculadasVisibles(); track column) {
+                          <td [class]="claseCeldaVinculada(column)">
+                            @if (column === 'vinculadaNombre') {
+                              <span class="vinculada-nombre-resumido" [siafTooltip]="valorVinculado(row, column)" tooltipMode="always">{{ valorVinculado(row, column) }}</span>
+                            } @else {
+                              {{ valorVinculado(row, column) }}
+                            }
+                          </td>
+                        }
                         @if (columnaVisible('estado')) { <td class="px-siaf-sm"><siaf-status-tag [tone]="row.estado === 'Inactivo' ? 'default' : 'info'" appearance="soft" size="small" [icon]="row.estado === 'Inactivo' ? 'info' : 'check_circle'">{{ row.estado }}</siaf-status-tag></td> } @if (columnaVisible('desde')) { <td class="px-siaf-sm">{{ row.desde }}</td> } @if (columnaVisible('hasta')) { <td class="px-siaf-sm text-center">{{ row.hasta }}</td> }
                         <td class="acciones-versiones-fija px-siaf-xs">
                           <div class="flex items-center justify-center gap-1">
@@ -379,7 +391,9 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
       max-width: 288px;
       overflow: hidden;
       -webkit-box-orient: vertical;
-      -webkit-line-clamp: 2;
+      -webkit-line-clamp: 3;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
     }
 
     .descripcion-disparador {
@@ -405,6 +419,15 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
       white-space: pre-wrap;
       user-select: text;
       line-height: 1.45;
+    }
+
+    .vinculada-nombre-resumido {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
     }
 
     /* Delimitan el grupo de condiciones con el mismo divider tenue de la tabla.
@@ -547,9 +570,11 @@ export class CatalogoVersionesBandejaComponent {
   readonly errorCondiciones = signal('');
   readonly columnasPanelAbierto = signal(false);
   readonly columnasExtendidas = signal(true);
-  readonly columnasBorrador = signal<Set<string>>(new Set(['anio', 'proceso', 'codigo', 'nombre', 'editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible', 'vinculadaAnio', 'vinculadaProceso', 'vinculadaCodigo', 'vinculadaNombre', 'estado', 'desde', 'hasta']));
+  // La información de versión vinculada es opcional en la grilla. Se habilita
+  // explícitamente desde «Más opciones» para evitar reservar columnas vacías.
+  readonly columnasBorrador = signal<Set<string>>(new Set(['anio', 'proceso', 'codigo', 'nombre', 'editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible', 'estado', 'desde', 'hasta']));
   readonly columnasVisibles = signal<Set<string>>(new Set(this.columnasBorrador()));
-  private readonly columnasIniciales = new Set(['anio', 'proceso', 'codigo', 'nombre', 'editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible', 'vinculadaAnio', 'vinculadaProceso', 'vinculadaCodigo', 'vinculadaNombre', 'estado', 'desde', 'hasta']);
+  private readonly columnasIniciales = new Set(['anio', 'proceso', 'codigo', 'nombre', 'editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible', 'estado', 'desde', 'hasta']);
   readonly anioFiltro = signal(''); readonly procesoFiltro = signal(''); readonly codigoFiltro = signal(''); readonly nombreFiltro = signal(''); readonly estadoFiltro = signal(''); readonly vinculadaAnioFiltro = signal(''); readonly vinculadaProcesoFiltro = signal(''); readonly vinculadaCodigoFiltro = signal(''); readonly vinculadaNombreFiltro = signal(''); readonly fechaDesdeFiltro = signal(''); readonly fechaHastaFiltro = signal(''); readonly editableFiltro = signal(''); readonly pliegoFiltro = signal(''); readonly vigenteFiltro = signal(''); readonly oficialFiltro = signal(''); readonly disponibleFiltro = signal('');
   readonly mensajeSnackbar = signal('');
   readonly tituloConfirmacionCancelacionFila = computed(() => this.editingId() !== null && this.esFilaNueva(this.editingId()!) ? '¿Está seguro(a) de cancelar el registro?' : '¿Está seguro(a) de cancelar la edición?');
@@ -566,7 +591,7 @@ export class CatalogoVersionesBandejaComponent {
   readonly recordProcessOptions = computed(() => [...new Set(this.displayedRows().map(row => row.proceso))].map(process => ({ label: process, value: process })));
   readonly recordAdditionalFilters = [{ label: 'Proceso', value: 'process' }];
   readonly seccionesColumnas: ColumnVisibilityPanelSection[] = [
-    { label: 'Campos generales', locked: true, columns: this.columnas(['anio', 'Año'], ['proceso', 'Proceso'], ['codigo', 'Código'], ['nombre', 'Nombre'], ['descripcion', 'Descripción']) },
+    { label: 'Campos generales', lockedColumns: ['anio', 'proceso', 'codigo', 'nombre'], columns: this.columnas(['anio', 'Año'], ['proceso', 'Proceso'], ['codigo', 'Código'], ['nombre', 'Nombre'], ['descripcion', 'Descripción']) },
     { label: 'Condiciones de versión', columns: this.columnas(['editable', 'Editable'], ['pliego', 'Pliego'], ['vigente', 'Vigente'], ['oficial', 'Oficial'], ['definitiva', 'Definitiva'], ['disponible', 'Disponible']) },
     { label: 'Versión vinculada', columns: this.columnas(['vinculadaAnio', 'Año'], ['vinculadaProceso', 'Proceso'], ['vinculadaCodigo', 'Código'], ['vinculadaNombre', 'Nombre']) },
     { label: 'Vigencia de versión', columns: this.columnas(['estado', 'Estado'], ['desde', 'Fecha desde'], ['hasta', 'Fecha hasta']) }
@@ -767,9 +792,9 @@ export class CatalogoVersionesBandejaComponent {
   etiquetaColumna(key: string): string { return ({ editable: 'Editable', pliego: 'Pliego', vigente: 'Vigente', oficial: 'Oficial', definitiva: 'Definitiva', disponible: 'Disponible', vinculadaAnio: 'Año', vinculadaProceso: 'Proceso', vinculadaCodigo: 'Código', vinculadaNombre: 'Nombre' } as Record<string, string>)[key] ?? key; }
   anchoColumnaVinculadaPx(key: string): number { return ({ vinculadaAnio: 80, vinculadaProceso: 300, vinculadaCodigo: 120, vinculadaNombre: 300 } as Record<string, number>)[key] ?? 0; }
   anchoColumnaVinculada(key: string): string { return `px-siaf-md text-left${key === 'vinculadaNombre' ? ' border-r border-[var(--sys-color-divider-strong)]' : ''}`; }
-  claseCeldaVinculada(key: string): string { return `min-w-0 px-siaf-sm${key === 'vinculadaProceso' ? ' whitespace-normal leading-[normal]' : ''}${key === 'vinculadaNombre' ? ' border-r border-[var(--sys-color-divider-strong)] whitespace-nowrap' : ''}`; }
+  claseCeldaVinculada(key: string): string { return `min-w-0 px-siaf-sm${key === 'vinculadaProceso' ? ' whitespace-normal leading-[normal]' : ''}${key === 'vinculadaNombre' ? ' border-r border-[var(--sys-color-divider-strong)] align-top' : ''}`; }
   valorVinculado(row: VersionRow, key: string): string { const link = this.editingId() === row.id ? this.draft()?.vinculada : row.vinculada; return ({ vinculadaAnio: link?.anio, vinculadaProceso: link?.proceso, vinculadaCodigo: link?.codigo, vinculadaNombre: link?.nombre } as Record<string, string | undefined>)[key] ?? ''; }
-  private readonly todasLasColumnas = ['anio', 'proceso', 'codigo', 'nombre', 'editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible', 'vinculadaAnio', 'vinculadaProceso', 'vinculadaCodigo', 'vinculadaNombre', 'estado', 'desde', 'hasta'];
+  private readonly todasLasColumnas = ['anio', 'proceso', 'codigo', 'nombre', 'descripcion', 'editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible', 'vinculadaAnio', 'vinculadaProceso', 'vinculadaCodigo', 'vinculadaNombre', 'estado', 'desde', 'hasta'];
   esEdicionCondiciones(id: number): boolean { return this.filaEditandoCondiciones() === id; }
   puedeEditarCondiciones(row: VersionRow): boolean {
     const editingId = this.filaEditandoCondiciones();

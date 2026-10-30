@@ -33,7 +33,7 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
       <section class="w-full p-siaf-md">
         <article class="w-full rounded-siaf-md bg-surface p-siaf-md">
           <header class="flex min-h-10 items-center justify-between gap-siaf-md">
-            <h2 class="m-0 text-base font-bold uppercase tracking-[0.02px] text-text">AGREGAR REGISTRO DE VERSIÓN</h2>
+            <h2 class="m-0 text-base font-bold uppercase tracking-[0.02px] text-text">{{ esEdicion ? 'EDITAR REGISTRO DE VERSIÓN' : 'AGREGAR REGISTRO DE VERSIÓN' }}</h2>
             <div class="flex shrink-0 items-center gap-siaf-xs">
               <siaf-button variant="outline" (click)="cancelar()">Cancelar</siaf-button>
               <siaf-button variant="accent" [loading]="grabando()" (click)="grabar()">Grabar</siaf-button>
@@ -46,7 +46,7 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
             }
             <section class="grid gap-siaf-md">
               <h3 class="m-0 text-sm font-bold uppercase text-text">Datos de versión</h3>
-              <div class="max-w-[294px]"><siaf-input label="Año fiscal" [required]="true" [autoSuccess]="false" [error]="errorAnio()" [value]="anio()" (valueChange)="cambiarAnio($any($event))" (blurred)="validarAnioAlSalir()" /></div>
+              <div class="max-w-[294px]"><siaf-input label="Año fiscal" [required]="true" [autoSuccess]="false" [disabled]="esEdicion" [error]="errorAnio()" [value]="anio()" (valueChange)="cambiarAnio($any($event))" (blurred)="validarAnioAlSalir()" /></div>
               @if (procesoSeleccionado()) {
                 <section class="grid gap-siaf-md">
                   <div class="flex min-h-10 items-center justify-between gap-siaf-md">
@@ -72,7 +72,7 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
                 <empty-section title="Proceso" message="No se ha seleccionado ningún proceso. Haga clic en el botón para realizar una selección." (actionClicked)="abrirSelectorProceso()" />
               }
               <div class="grid gap-siaf-lg md:grid-cols-3">
-                <siaf-input class="md:col-span-1" label="Código" [required]="true" [autoSuccess]="false" [error]="errorCodigo()" [value]="codigo()" (valueChange)="cambiarCodigo($any($event))" (blurred)="validarCodigoAlSalir()" />
+                <siaf-input class="md:col-span-1" label="Código" [required]="true" [autoSuccess]="false" [disabled]="esEdicion" [error]="errorCodigo()" [value]="codigo()" (valueChange)="cambiarCodigo($any($event))" (blurred)="validarCodigoAlSalir()" />
                 <siaf-input class="md:col-span-2" label="Nombre" [required]="true" [autoSuccess]="false" [disabled]="!procesoSeleccionado()" [error]="errorNombre()" [value]="nombre()" (click)="completarDatosVersion()" (valueChange)="cambiarNombre($any($event))" />
               </div>
               <text-area-control placeholder="Descripción" [required]="true" [autoSuccess]="false" [error]="errorDescripcion()" [maxlength]="500" [value]="descripcion()" (valueChange)="cambiarDescripcion($event)" />
@@ -81,13 +81,13 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
             <section class="grid gap-siaf-md">
               <h3 class="m-0 text-sm font-bold uppercase text-text">Condiciones de versión</h3>
               <div class="grid grid-cols-1 gap-siaf-xs sm:grid-cols-2 lg:grid-cols-3 lg:gap-siaf-lg 2xl:grid-cols-6">
-                <siaf-checkbox label="Editable" [checked]="editable()" [disabled]="esEdicion" (checkedChange)="cambiarEditable($event)" />
-                <siaf-checkbox label="Pliego" [checked]="pliego()" [disabled]="esEdicion" (checkedChange)="pliego.set($event)" />
-                <siaf-checkbox label="Vigente" [checked]="vigente()" [disabled]="esEdicion" (checkedChange)="vigente.set($event)" />
-                <siaf-checkbox label="Oficial" [checked]="oficial()" [disabled]="esEdicion" (checkedChange)="oficial.set($event)" />
-                <siaf-checkbox label="Definitiva" [checked]="definitiva()" [disabled]="esEdicion" (checkedChange)="definitiva.set($event)" />
+                <siaf-checkbox label="Editable" [checked]="editable()" (checkedChange)="cambiarEditable($event)" />
+                <siaf-checkbox label="Pliego" [checked]="pliego()" (checkedChange)="pliego.set($event)" />
+                <siaf-checkbox label="Vigente" [checked]="vigente()" (checkedChange)="vigente.set($event)" />
+                <siaf-checkbox label="Oficial" [checked]="oficial()" (checkedChange)="oficial.set($event)" />
+                <siaf-checkbox label="Definitiva" [checked]="definitiva()" (checkedChange)="definitiva.set($event)" />
                 <div>
-                  <siaf-checkbox label="Disponible" [checked]="disponible()" [disabled]="esEdicion || editable()" (checkedChange)="cambiarDisponible($event)" />
+                  <siaf-checkbox label="Disponible" [checked]="disponible()" [disabled]="editable()" (checkedChange)="cambiarDisponible($event)" />
                 </div>
               </div>
             </section>
@@ -112,8 +112,8 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
               <h3 class="m-0 text-sm font-bold uppercase text-text">Vigencia de versión</h3>
               <div class="grid items-start gap-siaf-lg md:grid-cols-3">
                 <siaf-radio-group label="Estado" name="estado-version" [inline]="true" [disabled]="!esEdicion" [options]="estados" [value]="estado()" (valueChange)="estado.set($event)" />
-                <siaf-date-time-picker label="Fecha desde" [fullWidth]="true" [defaultToToday]="false" [value]="fechaDesde()" [disabled]="!esEdicion" [hint]="!esEdicion ? 'Será asignada cuando se grabe el registro.' : ''" (valueChange)="fechaDesde.set($event)" />
-                <siaf-date-time-picker label="Fecha hasta" [fullWidth]="true" [defaultToToday]="false" [disabled]="true" [hint]="estado() === 'inactivo' ? 'Será asignada cuando se grabe el registro.' : ''" />
+                <siaf-date-time-picker label="Fecha desde" [fullWidth]="true" [defaultToToday]="false" [value]="fechaDesde()" [disabled]="true" [hint]="!esEdicion ? 'Será asignada cuando se grabe el registro.' : ''" />
+                <siaf-date-time-picker label="Fecha hasta" [fullWidth]="true" [defaultToToday]="false" [value]="fechaHasta()" [disabled]="true" [hint]="!esEdicion && estado() === 'inactivo' ? 'Será asignada cuando se grabe el registro.' : ''" />
               </div>
             </section>
           </div>
@@ -289,7 +289,9 @@ export class CatalogoVersionesRegistroComponent {
   readonly oficial = signal(this.registroEdicion?.oficial ?? false);
   readonly definitiva = signal(this.registroEdicion?.definitiva ?? false);
   readonly disponible = signal(this.registroEdicion?.disponible ?? false);
-  readonly estado = signal(this.registroEdicion?.estado.toLowerCase() ?? 'activo'); readonly fechaDesde = signal(this.fechaParaInput(this.registroEdicion?.desde) ?? '');
+  readonly estado = signal(this.registroEdicion?.estado.toLowerCase() ?? 'activo');
+  readonly fechaDesde = signal(this.fechaParaInput(this.registroEdicion?.desde) ?? '');
+  readonly fechaHasta = signal(this.fechaParaInput(this.registroEdicion?.hasta) ?? '');
   readonly errorAnio = computed(() => this.errorDeCampo('anio'));
   readonly errorCodigo = computed(() => this.errorDeCampo('codigo'));
   readonly errorNombre = computed(() => this.errorDeCampo('nombre'));
@@ -413,15 +415,16 @@ export class CatalogoVersionesRegistroComponent {
       definitiva: this.definitiva(),
       disponible: this.disponible(),
       estado: this.estado() === 'inactivo' ? 'Inactivo' : 'Activo',
-      desde: this.fechaRegistro(),
-      hasta: this.estado() === 'inactivo' ? this.fechaRegistro() : '-',
+      // En edición la vigencia es un dato histórico: se visualiza, pero no se modifica.
+      desde: this.esEdicion ? this.registroEdicion!.desde : this.fechaRegistro(),
+      hasta: this.esEdicion ? this.registroEdicion!.hasta : (this.estado() === 'inactivo' ? this.fechaRegistro() : '-'),
       auditadoEn: new Date().toLocaleString('es-PE'),
       vinculada: this.versionVinculadaSeleccionada() ? {
         anio: this.versionVinculadaSeleccionada()!.anio,
         proceso: this.versionVinculadaSeleccionada()!.proceso,
         codigo: this.versionVinculadaSeleccionada()!.codigo,
         nombre: this.versionVinculadaSeleccionada()!.nombre,
-      } : this.registroEdicion?.vinculada,
+      } : undefined,
     };
     void this.router.navigateByUrl('/procesos/catalogo-versiones', {
       state: {
@@ -467,9 +470,17 @@ export class CatalogoVersionesRegistroComponent {
       && item.proceso === vinculada.proceso
       && item.codigo === vinculada.codigo
     );
+    // La relación actual debe seguir visible y conservarse aunque la versión
+    // vinculada no esté entre los registros disponibles de la sesión.
     return registro ? {
       id: String(registro.id), anio: registro.anio, proceso: registro.proceso, codigo: registro.codigo, nombre: registro.nombre,
-    } : null;
+    } : {
+      id: `vinculada-${vinculada.anio}-${vinculada.proceso}-${vinculada.codigo}`,
+      anio: vinculada.anio,
+      proceso: vinculada.proceso,
+      codigo: vinculada.codigo,
+      nombre: vinculada.nombre,
+    };
   }
 
   private errorDeCampo(field: 'anio' | 'codigo' | 'nombre' | 'descripcion'): string {

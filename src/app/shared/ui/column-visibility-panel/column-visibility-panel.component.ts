@@ -9,6 +9,8 @@ export type ColumnVisibilityPanelSection = {
   label: string;
   columns: DocumentsRecordsColumn[];
   locked?: boolean;
+  /** Columnas fijas dentro de una sección que, por lo demás, es configurable. */
+  lockedColumns?: string[];
 };
 
 /**
@@ -76,8 +78,8 @@ export type ColumnVisibilityPanelSection = {
                   <section class="grid gap-siaf-xs">
                     <h3 class="m-0 px-[18px] text-xs font-normal uppercase text-[var(--sys-color-text-neutral-medium)]">{{ section.label }}</h3>
                     @for (column of section.columns; track column.key) {
-                      <label class="flex min-h-12 items-center gap-siaf-md px-siaf-md py-siaf-sm text-sm text-[var(--sys-color-text-neutral-medium)]" [class.cursor-pointer]="!section.locked" [class.hover:bg-surface-muted]="!section.locked">
-                        <input class="size-4 accent-[var(--sys-color-icon-states-enabled)]" type="checkbox" [checked]="isColumnVisible(column.key)" [disabled]="section.locked" (change)="toggleColumn.emit({ key: column.key, event: $event })" />
+                      <label class="flex min-h-12 items-center gap-siaf-md px-siaf-md py-siaf-sm text-sm text-[var(--sys-color-text-neutral-medium)]" [class.cursor-pointer]="!columnaBloqueada(section, column.key)" [class.hover:bg-surface-muted]="!columnaBloqueada(section, column.key)">
+                        <input class="size-4 accent-[var(--sys-color-icon-states-enabled)]" type="checkbox" [checked]="isColumnVisible(column.key)" [disabled]="columnaBloqueada(section, column.key)" (change)="toggleColumn.emit({ key: column.key, event: $event })" />
                         {{ column.label }}
                       </label>
                     }
@@ -142,4 +144,8 @@ export class ColumnVisibilityPanelComponent {
   @Output() applied = new EventEmitter<void>();
   @Output() toggleAll = new EventEmitter<Event>();
   @Output() toggleColumn = new EventEmitter<{ key: string; event: Event }>();
+
+  columnaBloqueada(section: ColumnVisibilityPanelSection, key: string): boolean {
+    return Boolean(section.locked || section.lockedColumns?.includes(key));
+  }
 }
