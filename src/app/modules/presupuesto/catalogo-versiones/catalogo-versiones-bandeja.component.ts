@@ -174,7 +174,7 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
                         @if (columnaVisible('nombre')) { <td class="whitespace-normal px-siaf-sm leading-[normal]">{{ row.nombre }}</td> }
                         @if (columnaVisible('descripcion')) {
                           <td class="px-siaf-sm align-top">
-                            <span class="descripcion-resumida" [siafTooltip]="row.descripcion" tooltipMode="always">{{ row.descripcion }}</span>
+                            <span class="descripcion-resumida" [siafTooltip]="row.descripcion" tooltipMode="truncated">{{ row.descripcion }}</span>
                           </td>
                         }
                         @for (condition of condicionesVisibles(); track condition) {

@@ -36,7 +36,7 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
             <h2 class="m-0 text-base font-bold uppercase tracking-[0.02px] text-text">{{ esEdicion ? 'EDITAR REGISTRO DE VERSIÓN' : 'AGREGAR REGISTRO DE VERSIÓN' }}</h2>
             <div class="flex shrink-0 items-center gap-siaf-xs">
               <siaf-button variant="outline" (click)="cancelar()">Cancelar</siaf-button>
-              <siaf-button variant="accent" [loading]="grabando()" (click)="grabar()">Grabar</siaf-button>
+              <siaf-button variant="accent" [loading]="grabando()" [disabled]="!puedeGrabar()" (click)="grabar()">Grabar</siaf-button>
             </div>
           </header>
 
@@ -296,6 +296,16 @@ export class CatalogoVersionesRegistroComponent {
   readonly errorCodigo = computed(() => this.errorDeCampo('codigo'));
   readonly errorNombre = computed(() => this.errorDeCampo('nombre'));
   readonly errorDescripcion = computed(() => this.errorDeCampo('descripcion'));
+  readonly puedeGrabar = computed(() => Boolean(
+    this.procesoSeleccionado()
+    && this.anio().trim()
+    && this.codigo().trim()
+    && this.nombre().trim()
+    && this.descripcion().trim()
+    && this.esAnioValido()
+    && this.esCodigoValido()
+    && this.descripcion().length <= 500
+  ));
 
   abrirSelectorProceso(): void {
     this.busquedaProceso.set('');

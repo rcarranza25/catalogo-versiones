@@ -229,8 +229,12 @@ export class TooltipDirective implements AfterViewInit, OnDestroy {
 
     const soloSiTruncado =
       this.tooltipMode === 'truncated' || (this.tooltipMode === 'auto' && !this.texto);
-    // +1px de tolerancia: el redondeo subpíxel puede dar diferencias de 0.5
-    if (soloSiTruncado && el.scrollWidth <= el.clientWidth + 1) return;
+    // +1px de tolerancia: el redondeo subpíxel puede dar diferencias de 0.5.
+    // El texto con line-clamp se trunca en vertical, por lo que revisar sólo
+    // el ancho mostraría el tooltip incluso cuando caben todas sus líneas.
+    const sinTruncadoHorizontal = el.scrollWidth <= el.clientWidth + 1;
+    const sinTruncadoVertical = el.scrollHeight <= el.clientHeight + 1;
+    if (soloSiTruncado && sinTruncadoHorizontal && sinTruncadoVertical) return;
 
     const tip = this.doc.createElement('div');
     tip.setAttribute('role', 'tooltip');
