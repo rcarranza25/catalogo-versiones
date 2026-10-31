@@ -14,7 +14,7 @@ import { RadioComponent } from '../../../shared/ui/radio/radio.component';
 import { SummaryCardComponent, SummaryCardField } from '../../../shared/ui/summary-card/summary-card.component';
 import { TextAreaControlComponent } from '../../../shared/ui/text-area-control/text-area-control.component';
 import { TextFieldComponent } from '../../../shared/ui/text-field/text-field.component';
-import { descripcionDemoVersion, nombreDemoVersion, sincronizarNombresDemo } from './catalogo-versiones-demo.data';
+import { ANIO_DEMO, descripcionDemoVersion, nombreDemoVersion, sincronizarNombresDemo } from './catalogo-versiones-demo.data';
 
 type ProcesoDemo = { id: string; codigo: string; nombre: string };
 type VersionVinculadaDemo = { id: string; anio: string; proceso: string; codigo: string; nombre: string };
@@ -46,7 +46,7 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
             }
             <section class="grid gap-siaf-md">
               <h3 class="m-0 text-sm font-bold uppercase text-text">Datos de versión</h3>
-              <div class="max-w-[294px]"><siaf-input label="Año fiscal" [required]="true" [autoSuccess]="false" [disabled]="esEdicion" [error]="errorAnio()" [value]="anio()" (valueChange)="cambiarAnio($any($event))" (blurred)="validarAnioAlSalir()" /></div>
+              <div class="max-w-[294px]"><siaf-input label="Año" [required]="true" [autoSuccess]="false" [disabled]="esEdicion" [error]="errorAnio()" [value]="anio()" (valueChange)="cambiarAnio($any($event))" (blurred)="validarAnioAlSalir()" /></div>
               @if (procesoSeleccionado()) {
                 <section class="grid gap-siaf-md">
                   <div class="flex min-h-10 items-center justify-between gap-siaf-md">
@@ -75,7 +75,7 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
                 <siaf-input class="md:col-span-1" label="Código" [required]="true" [autoSuccess]="false" [disabled]="esEdicion" [error]="errorCodigo()" [value]="codigo()" (valueChange)="cambiarCodigo($any($event))" (blurred)="validarCodigoAlSalir()" />
                 <siaf-input class="md:col-span-2" label="Nombre" [required]="true" [autoSuccess]="false" [disabled]="!procesoSeleccionado()" [error]="errorNombre()" [value]="nombre()" (click)="completarDatosVersion()" (valueChange)="cambiarNombre($any($event))" />
               </div>
-              <text-area-control placeholder="Descripción" [required]="true" [autoSuccess]="false" [error]="errorDescripcion()" [maxlength]="500" [value]="descripcion()" (valueChange)="cambiarDescripcion($event)" />
+              <text-area-control placeholder="Descripción" [required]="true" [autoSuccess]="false" [disabled]="!procesoSeleccionado()" [error]="errorDescripcion()" [maxlength]="500" [value]="descripcion()" (valueChange)="cambiarDescripcion($event)" />
             </section>
 
             <section class="grid gap-siaf-md">
@@ -113,7 +113,7 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
               <div class="grid items-start gap-siaf-lg md:grid-cols-3">
                 <siaf-radio-group label="Estado" name="estado-version" [inline]="true" [disabled]="!esEdicion" [options]="estados" [value]="estado()" (valueChange)="estado.set($event)" />
                 <siaf-date-time-picker label="Fecha desde" [fullWidth]="true" [defaultToToday]="false" [value]="fechaDesde()" [disabled]="true" [hint]="!esEdicion ? 'Será asignada cuando se grabe el registro.' : ''" />
-                <siaf-date-time-picker label="Fecha hasta" [fullWidth]="true" [defaultToToday]="false" [value]="fechaHasta()" [disabled]="true" [hint]="!esEdicion && estado() === 'inactivo' ? 'Será asignada cuando se grabe el registro.' : ''" />
+                <siaf-date-time-picker label="Fecha hasta" [fullWidth]="true" [defaultToToday]="false" [value]="fechaHasta()" [displayValueOverride]="fechaHastaPendienteDeCierre() ? '-' : ''" [disabled]="true" [hint]="fechaHastaPendienteDeCierre() ? 'Será asignada cuando se grabe el registro' : ''" />
               </div>
             </section>
           </div>
@@ -207,7 +207,7 @@ export class CatalogoVersionesRegistroComponent {
   readonly versionSeisDisponible = Boolean(history.state?.['versionSeisDisponible']);
   readonly nuevoProcesoExistente = Boolean(history.state?.['nuevoProcesoExistente']);
 
-  readonly breadcrumbs = [{ label: 'Inicio', href: '/panel' }, { label: 'Procesos presupuesto' }, { label: 'Clasificadores y catálogos' }, { label: 'Catálogo de versiones', href: '/procesos/catalogo-versiones' }, { label: 'Registro de versiones' }];
+  readonly breadcrumbs = [{ label: 'Inicio', href: '/panel' }, { label: 'Procesos presupuesto' }, { label: 'Clasificadores y catálogos' }, { label: 'Catálogo de versiones', href: '/procesos/catalogo-versiones' }, { label: 'Configuración de versiones' }];
   readonly estados = [{ label: 'Activo', value: 'activo' }, { label: 'Inactivo', value: 'inactivo' }];
   readonly procesos: ProcesoDemo[] = [
     { id: 'pmp', codigo: 'M02.1.9', nombre: 'Programación Multianual Presupuestaria' },
@@ -237,7 +237,7 @@ export class CatalogoVersionesRegistroComponent {
   readonly busquedaProceso = signal('');
   readonly procesoTemporalIds = signal<string[]>([]);
   readonly procesoSeleccionado = signal<ProcesoDemo | null>(this.esEdicion ? this.procesos.find(proceso => this.registroEdicion?.proceso.startsWith(`${proceso.codigo} `)) ?? null : null);
-  readonly anio = signal(this.registroEdicion?.anio ?? '2026');
+  readonly anio = signal(this.registroEdicion?.anio ?? ANIO_DEMO);
   readonly registrosGrabados = signal<RegistroVersionState[]>(this.cargarRegistrosGrabados());
   readonly versionVinculadaSeleccionada = signal<VersionVinculadaDemo | null>(this.versionVinculadaInicial());
   readonly versionVinculadaId = signal(this.versionVinculadaSeleccionada()?.id ?? '');
@@ -292,6 +292,11 @@ export class CatalogoVersionesRegistroComponent {
   readonly estado = signal(this.registroEdicion?.estado.toLowerCase() ?? 'activo');
   readonly fechaDesde = signal(this.fechaParaInput(this.registroEdicion?.desde) ?? '');
   readonly fechaHasta = signal(this.fechaParaInput(this.registroEdicion?.hasta) ?? '');
+  readonly fechaHastaPendienteDeCierre = computed(() =>
+    this.esEdicion
+    && this.registroEdicion?.estado === 'Activo'
+    && this.estado() === 'inactivo'
+  );
   readonly errorAnio = computed(() => this.errorDeCampo('anio'));
   readonly errorCodigo = computed(() => this.errorDeCampo('codigo'));
   readonly errorNombre = computed(() => this.errorDeCampo('nombre'));
@@ -319,9 +324,8 @@ export class CatalogoVersionesRegistroComponent {
     const proceso = this.procesos.find(item => item.id === ids[0]) ?? null;
     if (!proceso) return;
     this.procesoSeleccionado.set(proceso);
-    // Cada proceso tiene su propia secuencia de versiones: el proceso existente conserva el 5;
-    // para los demás procesos, el primer registro comienza en 1.
-    this.codigo.set(proceso.codigo === 'M02.1.9.1' ? '5' : '1');
+    this.actualizarRegistrosGrabados();
+    this.codigo.set(this.siguienteCodigo());
     this.limpiarVersionVinculada();
     this.selectorProcesoAbierto.set(false);
   }
@@ -366,6 +370,7 @@ export class CatalogoVersionesRegistroComponent {
     this.anioValidado.set(false);
     this.mensajeValidacion.set('');
     this.limpiarVersionVinculada();
+    if (!this.esEdicion && this.procesoSeleccionado()) this.codigo.set(this.siguienteCodigo());
   }
 
   cambiarCodigo(value: string): void { this.codigo.set(value); this.codigoValidado.set(false); this.mensajeValidacion.set(''); }
@@ -386,8 +391,13 @@ export class CatalogoVersionesRegistroComponent {
     if (this.esEdicion) return;
     const proceso = this.procesoSeleccionado();
     if (!proceso) return;
-    this.nombre.set(nombreDemoVersion(this.anio(), `${proceso.codigo} ${proceso.nombre}`, this.codigo()) ?? '');
-    this.descripcion.set(descripcionDemoVersion(this.anio(), `${proceso.codigo} ${proceso.nombre}`, this.codigo()) ?? 'Versión final del presupuesto operativo para el ejercicio fiscal 2026. Integra ajustes derivados de la proyección de ventas, la optimización de costes directos y la redistribución de recursos en marketing e infraestructura tecnológica. Contempla una reserva para contingencias ante la volatilidad del tipo de cambio y la inflación prevista. Documento revisado y validado por el área de finanzas para su presentación y aprobación por la alta dirección.');
+    const procesoActual = `${proceso.codigo} ${proceso.nombre}`;
+    if (!this.nombre().trim()) {
+      this.nombre.set(nombreDemoVersion(this.anio(), procesoActual, this.codigo()) ?? proceso.nombre);
+    }
+    if (!this.descripcion().trim()) {
+      this.descripcion.set(descripcionDemoVersion(this.anio(), procesoActual, this.codigo()) ?? proceso.nombre);
+    }
   }
 
   grabar(): void {
@@ -427,7 +437,9 @@ export class CatalogoVersionesRegistroComponent {
       estado: this.estado() === 'inactivo' ? 'Inactivo' : 'Activo',
       // En edición la vigencia es un dato histórico: se visualiza, pero no se modifica.
       desde: this.esEdicion ? this.registroEdicion!.desde : this.fechaRegistro(),
-      hasta: this.esEdicion ? this.registroEdicion!.hasta : (this.estado() === 'inactivo' ? this.fechaRegistro() : '-'),
+      hasta: this.esEdicion
+        ? (this.fechaHastaPendienteDeCierre() ? this.fechaRegistro() : this.registroEdicion!.hasta)
+        : (this.estado() === 'inactivo' ? this.fechaRegistro() : '-'),
       auditadoEn: new Date().toLocaleString('es-PE'),
       vinculada: this.versionVinculadaSeleccionada() ? {
         anio: this.versionVinculadaSeleccionada()!.anio,
@@ -460,7 +472,11 @@ export class CatalogoVersionesRegistroComponent {
   private cargarRegistrosGrabados(): RegistroVersionState[] {
     try {
       const registros = JSON.parse(sessionStorage.getItem(SESSION_STORAGE_KEY) ?? '[]');
-      const normalizados = Array.isArray(registros) ? sincronizarNombresDemo(registros as RegistroVersionState[]) : [];
+      const normalizados = Array.isArray(registros) ? sincronizarNombresDemo((registros as RegistroVersionState[]).map(registro => ({
+        ...registro,
+        ...(registro.anio === '2026' ? { anio: ANIO_DEMO } : {}),
+        ...(registro.vinculada ? { vinculada: { ...registro.vinculada, ...(registro.vinculada.anio === '2026' ? { anio: ANIO_DEMO } : {}) } } : {}),
+      }))) : [];
       if (normalizados.length) sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(normalizados));
       return normalizados;
     } catch {
@@ -510,6 +526,14 @@ export class CatalogoVersionesRegistroComponent {
   private esAnioValido(): boolean { return /^\d{4}$/.test(this.anio().trim()); }
   private esCodigoValido(): boolean { return /^\d+$/.test(this.codigo().trim()) && Number(this.codigo().trim()) > 0; }
   private procesoActual(): string { const proceso = this.procesoSeleccionado(); return proceso ? `${proceso.codigo} ${proceso.nombre}` : ''; }
+  /** Secuencia demostrativa por Año + Proceso; nunca reutiliza códigos existentes. */
+  private siguienteCodigo(): string {
+    const proceso = this.procesoActual();
+    const mayor = this.registrosGrabados()
+      .filter(registro => registro.anio.trim() === this.anio().trim() && registro.proceso === proceso)
+      .reduce((maximo, registro) => Math.max(maximo, Number(registro.codigo) || 0), 0);
+    return String(mayor + 1);
+  }
   private validarParaGrabar(): string {
     if (!this.procesoSeleccionado()) return 'Debe seleccionar un proceso.';
     if (!this.anio().trim() || !this.codigo().trim() || !this.nombre().trim() || !this.descripcion().trim()) return 'Debe completar los campos obligatorios.';
@@ -522,9 +546,10 @@ export class CatalogoVersionesRegistroComponent {
     if (comparables.some(registro => registro.codigo === this.codigo().trim())) return 'Ya existe una versión registrada con el mismo año, proceso y código.';
     if (comparables.some(registro => registro.nombre === this.nombre().trim())) return 'Ya existe una versión con el mismo nombre para el año y el proceso seleccionados.';
     if (comparables.some(registro => registro.descripcion === this.descripcion().trim())) return 'Ya existe una versión con la misma descripción para el año y el proceso seleccionados.';
-    if (this.definitiva() && comparables.some(registro => registro.definitiva)) return 'Ya existe una versión marcada como Definitiva para el año y el proceso seleccionados.';
-    if (this.disponible() && comparables.some(registro => registro.disponible)) return 'Ya existe una versión marcada como Disponible para el año y el proceso seleccionados.';
-    if (this.vigente() && comparables.some(registro => registro.vigente)) return 'Ya existe una versión marcada como Vigente para el año y el proceso seleccionados.';
+    for (const [condicion, marcada] of [['Oficial', this.oficial()], ['Definitiva', this.definitiva()], ['Disponible', this.disponible()], ['Vigente', this.vigente()]] as const) {
+      const conflicto = comparables.find(registro => registro[condicion.toLowerCase() as 'oficial' | 'definitiva' | 'disponible' | 'vigente']);
+      if (marcada && conflicto) return `No se puede guardar: la versión ${conflicto.codigo} ya tiene la condición ${condicion} para el año ${this.anio().trim()} y el proceso seleccionado.`;
+    }
     const mensajeInactivacion = this.mensajeInactivacionBloqueada();
     if (mensajeInactivacion) return mensajeInactivacion;
     return '';
@@ -558,7 +583,7 @@ export class CatalogoVersionesRegistroComponent {
         && vinculada.anio === actual.anio && vinculada.proceso === actual.proceso
         && vinculada.codigo === actual.codigo && vinculada.nombre === actual.nombre);
     if (!this.esEdicion) {
-      return Boolean(this.anio().trim() !== '2026' || proceso || this.codigo().trim() || this.nombre().trim() || this.descripcion().trim()
+      return Boolean(this.anio().trim() !== ANIO_DEMO || proceso || this.codigo().trim() || this.nombre().trim() || this.descripcion().trim()
         || this.editable() || this.pliego() || this.disponible() || this.definitiva() || this.vigente() !== true
         || this.estado() !== 'activo' || this.fechaDesde() || vinculada);
     }
@@ -600,8 +625,8 @@ export class CatalogoVersionesRegistroComponent {
   private fechaRegistro(): string {
     if (this.esEdicion) return this.fechaParaVista(this.fechaDesde());
     return this.procesoSeleccionado()?.codigo === 'M02.1.9.2' && this.codigo().trim() === '1'
-      ? '25/09/2026'
-      : '20/08/2026';
+      ? '25/09/2027'
+      : '20/08/2027';
   }
 
   private fechaParaInput(fecha: string | undefined): string | null {

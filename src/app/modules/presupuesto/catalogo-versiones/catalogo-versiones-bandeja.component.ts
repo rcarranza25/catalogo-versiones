@@ -15,12 +15,11 @@ import { ModalComponent } from '../../../shared/ui/modal/modal.component';
 import { StatusTagComponent } from '../../../shared/ui/status-tag/status-tag.component';
 import { SnackbarComponent } from '../../../shared/ui/snackbar/snackbar.component';
 import { SideNavComponent } from '../../../shared/ui/side-nav/side-nav.component';
-import { DateTimePickerComponent } from '../../../shared/ui/date-time-picker/date-time-picker.component';
 import { TextFieldComponent } from '../../../shared/ui/text-field/text-field.component';
 import { TooltipDirective } from '../../../shared/ui/tooltip/tooltip.directive';
 import { ColumnVisibilityPanelComponent, ColumnVisibilityPanelSection } from '../../../shared/ui/column-visibility-panel/column-visibility-panel.component';
 import type { DocumentsRecordsColumn } from '../../../shared/types/documents-records.types';
-import { descripcionDemoVersion, nombreDemoVersion, PROCESO_ASIGNACION, PROCESO_PROGRAMACION_UE, sincronizarNombresDemo } from './catalogo-versiones-demo.data';
+import { ANIO_DEMO, descripcionDemoVersion, nombreDemoVersion, PROCESO_ASIGNACION, PROCESO_PROGRAMACION_UE, sincronizarNombresDemo } from './catalogo-versiones-demo.data';
 
 type VersionRow = { id: number; anio: string; proceso: string; codigo: string; nombre: string; descripcion: string; editable: boolean; pliego: boolean; vigente: boolean; oficial: boolean; definitiva: boolean; disponible: boolean; estado: string; desde: string; hasta: string; auditadoEn: string; vinculada?: { anio: string; proceso: string; codigo: string; nombre: string; }; };
 type VersionDocumentRow = { id: number; documento: string; numero: string; tipoAccion: string; estado: string; sistema: string; fecha: string; entidad: string; };
@@ -31,10 +30,10 @@ const CONDITION_KEYS: ConditionKey[] = ['editable', 'pliego', 'vigente', 'oficia
 
 /** Estado deliberadamente mínimo para iniciar una demostración nueva. */
 const BASE_VERSION_ROWS: VersionRow[] = [
-  { id: 1, anio: '2026', proceso: PROCESO_ASIGNACION, codigo: '1', nombre: nombreDemoVersion('2026', PROCESO_ASIGNACION, '1')!, descripcion: 'Versión inicial del proceso.', editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '05/07/2026', hasta: '-', auditadoEn: '05/07/2026 08:00' },
-  { id: 2, anio: '2026', proceso: PROCESO_ASIGNACION, codigo: '2', nombre: nombreDemoVersion('2026', PROCESO_ASIGNACION, '2')!, descripcion: 'Borrador para revisión.', editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '05/07/2026', hasta: '-', auditadoEn: '05/07/2026 09:00' },
-  { id: 3, anio: '2026', proceso: PROCESO_ASIGNACION, codigo: '3', nombre: nombreDemoVersion('2026', PROCESO_ASIGNACION, '3')!, descripcion: 'Versión conciliada.', editable: false, pliego: true, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '15/07/2026', hasta: '-', auditadoEn: '15/07/2026 10:00' },
-  { id: 4, anio: '2026', proceso: PROCESO_ASIGNACION, codigo: '4', nombre: nombreDemoVersion('2026', PROCESO_ASIGNACION, '4')!, descripcion: 'Versión aprobada.', editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '20/08/2026', hasta: '-', auditadoEn: '20/08/2026 11:00' },
+  { id: 1, anio: ANIO_DEMO, proceso: PROCESO_ASIGNACION, codigo: '1', nombre: nombreDemoVersion(ANIO_DEMO, PROCESO_ASIGNACION, '1')!, descripcion: 'Versión inicial del proceso.', editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '05/07/2027', hasta: '-', auditadoEn: '05/07/2027 08:00' },
+  { id: 2, anio: ANIO_DEMO, proceso: PROCESO_ASIGNACION, codigo: '2', nombre: nombreDemoVersion(ANIO_DEMO, PROCESO_ASIGNACION, '2')!, descripcion: 'Borrador para revisión.', editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '05/07/2027', hasta: '-', auditadoEn: '05/07/2027 09:00' },
+  { id: 3, anio: ANIO_DEMO, proceso: PROCESO_ASIGNACION, codigo: '3', nombre: nombreDemoVersion(ANIO_DEMO, PROCESO_ASIGNACION, '3')!, descripcion: 'Versión conciliada.', editable: false, pliego: true, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '15/07/2027', hasta: '-', auditadoEn: '15/07/2027 10:00' },
+  { id: 4, anio: ANIO_DEMO, proceso: PROCESO_ASIGNACION, codigo: '4', nombre: nombreDemoVersion(ANIO_DEMO, PROCESO_ASIGNACION, '4')!, descripcion: 'Versión aprobada.', editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '20/08/2027', hasta: '-', auditadoEn: '20/08/2027 11:00' },
 ];
 const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
 const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.catalogo-versiones.rows'];
@@ -42,7 +41,7 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
 @Component({
   selector: 'siaf-catalogo-versiones-bandeja',
   standalone: true,
-  imports: [BreadcrumbComponent, ButtonComponent, ColumnVisibilityPanelComponent, DocumentHistoryPanelComponent, FilterPillComponent, IconComponent, IconDropdownMenuComponent, ModalComponent, PageHeaderComponent, PaginationComponent, RecordsSearchToolbarComponent, SnackbarComponent, SideNavComponent, StatusTagComponent, DateTimePickerComponent, TextFieldComponent, TooltipDirective],
+  imports: [BreadcrumbComponent, ButtonComponent, ColumnVisibilityPanelComponent, DocumentHistoryPanelComponent, FilterPillComponent, IconComponent, IconDropdownMenuComponent, ModalComponent, PageHeaderComponent, PaginationComponent, RecordsSearchToolbarComponent, SnackbarComponent, SideNavComponent, StatusTagComponent, TextFieldComponent, TooltipDirective],
   template: `
     <main class="min-h-[calc(100vh-56px)] overflow-x-hidden bg-[var(--sys-color-bg-surfaces-surface-lowest)] text-text">
       <div class="w-full">
@@ -138,6 +137,14 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
                 </ng-container>
               </siaf-records-search-toolbar>
 
+              @if (filtrosAplicados().length) {
+                <div class="flex flex-wrap gap-siaf-xs" aria-label="Filtros aplicados">
+                  @for (filtro of filtrosAplicados(); track filtro) {
+                    <span class="rounded-full bg-[var(--sys-color-bg-surfaces-surface-high)] px-siaf-sm py-1 text-xs text-text">{{ filtro }}</span>
+                  }
+                </div>
+              }
+
               <!-- Solo esta caja admite scroll horizontal; no se propaga al shell ni a los controles. -->
               <div class="min-w-0 max-w-full overflow-x-auto rounded-siaf-sm" aria-label="Grilla de versiones">
                 <table class="versiones-grid table-fixed border-collapse text-left text-sm" [style.width.px]="anchoGrillaPx()" [style.min-width.px]="anchoGrillaPx()">
@@ -178,17 +185,19 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
                           </td>
                         }
                         @for (condition of condicionesVisibles(); track condition) {
-                          <td class="px-siaf-sm text-center" [class.condicion-divider-inicio]="condition === 'editable'" [class.condicion-divider-fin]="condition === 'disponible'">
-                            @if (esEdicionCondiciones(row.id)) {
-                              <input
-                                class="size-4 cursor-pointer accent-[var(--sys-color-icon-states-enabled)]"
-                                type="checkbox"
-                                [checked]="valorCondicionEnEdicion(condition)"
-                                [attr.aria-label]="etiquetaColumna(condition) + ' para versión ' + row.codigo"
-                                (click)="$event.stopPropagation()"
-                                (change)="actualizarCondicionDeFila(row, condition, $event)"
-                              />
-                            } @else if ($any(row)[condition]) { <siaf-icon name="check" [size]="24" /> }
+                          <td class="px-siaf-md align-middle" [class.condicion-divider-inicio]="condition === 'editable'" [class.condicion-divider-fin]="condition === 'disponible'">
+                            <div class="flex min-h-4 items-center justify-start">
+                              @if (esEdicionCondiciones(row.id)) {
+                                <input
+                                  class="size-4 cursor-pointer accent-[var(--sys-color-icon-states-enabled)]"
+                                  type="checkbox"
+                                  [checked]="valorCondicionEnEdicion(condition)"
+                                  [attr.aria-label]="etiquetaColumna(condition) + ' para versión ' + row.codigo"
+                                  (click)="$event.stopPropagation()"
+                                  (change)="actualizarCondicionDeFila(row, condition, $event)"
+                                />
+                              } @else if ($any(row)[condition]) { <siaf-icon name="check" [size]="24" /> }
+                            </div>
                           </td>
                         }
                         @for (column of vinculadasVisibles(); track column) {
@@ -275,41 +284,35 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
           <siaf-input type="select" label="Estado" [autoSuccess]="false" [options]="opcionesEstado" [value]="estadoFiltro()" (valueChange)="estadoFiltro.set($any($event))" />
 
           <section class="grid gap-siaf-md">
-            <h3 class="m-0 text-[10px] font-medium uppercase text-text-muted">Versión vinculada</h3>
-            <siaf-input type="select" label="Año" [autoSuccess]="false" [options]="opcionesVinculadaAnio()" [value]="vinculadaAnioFiltro()" (valueChange)="vinculadaAnioFiltro.set($any($event))" />
-            <siaf-input type="select" label="Proceso" [autoSuccess]="false" [options]="opcionesVinculadaProceso()" [value]="vinculadaProcesoFiltro()" (valueChange)="vinculadaProcesoFiltro.set($any($event))" />
-            <siaf-input type="select" label="Código" [autoSuccess]="false" [options]="opcionesVinculadaCodigo()" [value]="vinculadaCodigoFiltro()" (valueChange)="vinculadaCodigoFiltro.set($any($event))" />
-            <siaf-input type="select" label="Nombre" [autoSuccess]="false" [options]="opcionesVinculadaNombre()" [value]="vinculadaNombreFiltro()" (valueChange)="vinculadaNombreFiltro.set($any($event))" />
-          </section>
-
-          <section class="grid gap-siaf-sm">
-            <h3 class="m-0 text-[10px] font-medium uppercase text-text-muted">Filtro por rango de fecha</h3>
-            <div class="grid grid-cols-2 gap-siaf-xs">
-              <siaf-date-time-picker label="Fecha desde" [defaultToToday]="false" [fullWidth]="true" [value]="fechaDesdeFiltro()" (valueChange)="fechaDesdeFiltro.set($event)" />
-              <siaf-date-time-picker label="Fecha hasta" [defaultToToday]="false" [fullWidth]="true" [value]="fechaHastaFiltro()" (valueChange)="fechaHastaFiltro.set($event)" />
-            </div>
-          </section>
-
-          <section class="grid gap-siaf-md">
             <h3 class="m-0 text-[10px] font-medium uppercase text-text-muted">Condiciones de versión</h3>
             <siaf-input type="select" label="Editable" [autoSuccess]="false" [options]="opcionesCondicion" [value]="editableFiltro()" (valueChange)="editableFiltro.set($any($event))" />
             <siaf-input type="select" label="Pliego" [autoSuccess]="false" [options]="opcionesCondicion" [value]="pliegoFiltro()" (valueChange)="pliegoFiltro.set($any($event))" />
             <siaf-input type="select" label="Vigente" [autoSuccess]="false" [options]="opcionesCondicion" [value]="vigenteFiltro()" (valueChange)="vigenteFiltro.set($any($event))" />
             <siaf-input type="select" label="Oficial" [autoSuccess]="false" [options]="opcionesCondicion" [value]="oficialFiltro()" (valueChange)="oficialFiltro.set($any($event))" />
+            <siaf-input type="select" label="Definitiva" [autoSuccess]="false" [options]="opcionesCondicion" [value]="definitivaFiltro()" (valueChange)="definitivaFiltro.set($any($event))" />
             <siaf-input type="select" label="Disponible" [autoSuccess]="false" [options]="opcionesCondicion" [value]="disponibleFiltro()" (valueChange)="disponibleFiltro.set($any($event))" />
           </section>
         </div>
       </siaf-side-nav>
       <siaf-column-visibility-panel
         [open]="columnasPanelAbierto()"
+        title="COLUMNAS VISIBLES"
+        selectAllLabel="Seleccionar todas"
         [allSelected]="todasColumnasSeleccionadas()"
+        [allIndeterminate]="columnasParcialmenteSeleccionadas()"
         [dirty]="columnasPanelModificado()"
+        [catalogLayout]="true"
+        [individualColumns]="columnasIndividuales"
         [sections]="seccionesColumnas"
         [isColumnVisible]="columnaBorradorVisible"
+        [isSectionSelected]="seccionColumnasSeleccionada"
+        [isSectionIndeterminate]="seccionColumnasParcial"
         (closed)="cerrarPanelColumnas()"
+        (reset)="restablecerColumnas()"
         (applied)="aplicarColumnas()"
         (toggleAll)="seleccionarTodasColumnas($event)"
         (toggleColumn)="alternarColumna($event.key, $event.event)"
+        (toggleSection)="alternarSeccionColumnas($event.section, $event.event)"
       />
       <siaf-document-history-panel
         [open]="documentHistoryOpen()"
@@ -536,7 +539,7 @@ export class CatalogoVersionesBandejaComponent {
   private readonly router = inject(Router);
   // La bandeja inicia mostrando solo las versiones activas. «Todos» expone
   // también las bajas lógicas sin perder sus fechas ni demás datos.
-  readonly search = signal(''); readonly estado = signal('Activo'); readonly anio = signal(''); readonly snackbarVisible = signal(false); readonly selectedIds = signal<Set<number>>(new Set());
+  readonly search = signal(''); readonly estado = signal('Activo'); readonly anio = signal(ANIO_DEMO); readonly snackbarVisible = signal(false); readonly selectedIds = signal<Set<number>>(new Set());
   readonly filtrosPanelAbierto = signal(false);
   readonly activeTab = signal<'documents' | 'records'>(history.state?.['activeTab'] === 'records' ? 'records' : 'documents');
   readonly documentSearch = signal('');
@@ -575,13 +578,13 @@ export class CatalogoVersionesBandejaComponent {
   readonly columnasBorrador = signal<Set<string>>(new Set(['anio', 'proceso', 'codigo', 'nombre', 'editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible', 'estado', 'desde', 'hasta']));
   readonly columnasVisibles = signal<Set<string>>(new Set(this.columnasBorrador()));
   private readonly columnasIniciales = new Set(['anio', 'proceso', 'codigo', 'nombre', 'editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible', 'estado', 'desde', 'hasta']);
-  readonly anioFiltro = signal(''); readonly procesoFiltro = signal(''); readonly codigoFiltro = signal(''); readonly nombreFiltro = signal(''); readonly estadoFiltro = signal(''); readonly vinculadaAnioFiltro = signal(''); readonly vinculadaProcesoFiltro = signal(''); readonly vinculadaCodigoFiltro = signal(''); readonly vinculadaNombreFiltro = signal(''); readonly fechaDesdeFiltro = signal(''); readonly fechaHastaFiltro = signal(''); readonly editableFiltro = signal(''); readonly pliegoFiltro = signal(''); readonly vigenteFiltro = signal(''); readonly oficialFiltro = signal(''); readonly disponibleFiltro = signal('');
+  readonly anioFiltro = signal(ANIO_DEMO); readonly procesoFiltro = signal(''); readonly codigoFiltro = signal(''); readonly nombreFiltro = signal(''); readonly estadoFiltro = signal('Activo'); readonly editableFiltro = signal(''); readonly pliegoFiltro = signal(''); readonly vigenteFiltro = signal(''); readonly oficialFiltro = signal(''); readonly definitivaFiltro = signal(''); readonly disponibleFiltro = signal('');
   readonly mensajeSnackbar = signal('');
   readonly tituloConfirmacionCancelacionFila = computed(() => this.editingId() !== null && this.esFilaNueva(this.editingId()!) ? '¿Está seguro(a) de cancelar el registro?' : '¿Está seguro(a) de cancelar la edición?');
   readonly breadcrumbs = [{ label: 'Inicio', href: '/panel' }, { label: 'Procesos presupuesto' }, { label: 'Clasificadores y catálogos' }, { label: 'Catálogo de versiones' }];
   /** Esta pantalla representa el listado de registros; no crea documentos desde el catálogo. */
   readonly tabsItems: RecordsTabItem[] = [{ id: 'documents', label: 'Documentos' }, { id: 'records', label: 'Registros' }];
-  readonly optionsMenu = [{ label: 'Ocultar o mostrar columnas', value: 'columns', divider: true }, { label: 'Reiniciar demo', value: 'reset-demo', icon: 'restart_alt' }];
+  readonly optionsMenu = [{ label: 'Columnas visibles', value: 'columns', divider: true }, { label: 'Reiniciar demo', value: 'reset-demo', icon: 'restart_alt' }];
   readonly documentStatusOptions = [{ label: 'Aceptado', value: 'Aceptado' }];
   readonly documentActionOptions = [{ label: 'Creación', value: 'Creación' }];
   readonly documentSystemOptions = [{ label: 'Presupuesto', value: 'Presupuesto' }];
@@ -590,14 +593,20 @@ export class CatalogoVersionesBandejaComponent {
   readonly recordYearOptions = computed(() => [...new Set(this.displayedRows().map(row => row.anio))].map(year => ({ label: year, value: year })));
   readonly recordProcessOptions = computed(() => [...new Set(this.displayedRows().map(row => row.proceso))].map(process => ({ label: process, value: process })));
   readonly recordAdditionalFilters = [{ label: 'Proceso', value: 'process' }];
+  readonly columnasIndividuales = this.columnas(['anio', 'Año'], ['proceso', 'Proceso'], ['codigo', 'Código'], ['nombre', 'Nombre'], ['descripcion', 'Descripción']);
   readonly seccionesColumnas: ColumnVisibilityPanelSection[] = [
-    { label: 'Campos generales', lockedColumns: ['anio', 'proceso', 'codigo', 'nombre'], columns: this.columnas(['anio', 'Año'], ['proceso', 'Proceso'], ['codigo', 'Código'], ['nombre', 'Nombre'], ['descripcion', 'Descripción']) },
-    { label: 'Condiciones de versión', columns: this.columnas(['editable', 'Editable'], ['pliego', 'Pliego'], ['vigente', 'Vigente'], ['oficial', 'Oficial'], ['definitiva', 'Definitiva'], ['disponible', 'Disponible']) },
-    { label: 'Versión vinculada', columns: this.columnas(['vinculadaAnio', 'Año'], ['vinculadaProceso', 'Proceso'], ['vinculadaCodigo', 'Código'], ['vinculadaNombre', 'Nombre']) },
-    { label: 'Vigencia de versión', columns: this.columnas(['estado', 'Estado'], ['desde', 'Fecha desde'], ['hasta', 'Fecha hasta']) }
+    { label: 'Condiciones de versión', collapsible: true, columns: this.columnas(['editable', 'Editable'], ['pliego', 'Pliego'], ['vigente', 'Vigente'], ['oficial', 'Oficial'], ['definitiva', 'Definitiva'], ['disponible', 'Disponible']) },
+    { label: 'Versión vinculada', collapsible: true, selectionMode: 'grouped', columns: this.columnas(['vinculadaAnio', 'Año'], ['vinculadaProceso', 'Proceso'], ['vinculadaCodigo', 'Código'], ['vinculadaNombre', 'Nombre']) },
+    { label: 'Vigencia de versión', collapsible: true, columns: this.columnas(['estado', 'Estado'], ['desde', 'Fecha desde'], ['hasta', 'Fecha hasta']) }
   ];
-  readonly opcionesAnio = [{ label: 'Todos', value: '' }, { label: '2026', value: '2026' }];
-  readonly opcionesProceso = [{ label: 'Todos', value: '' }, { label: 'M02.1.9.1', value: 'M02.1.9.1' }, { label: 'M02.1.9.2', value: 'M02.1.9.2' }];
+  readonly opcionesAnio = [{ label: ANIO_DEMO, value: ANIO_DEMO }];
+  readonly opcionesProceso = [
+    { label: 'Todos', value: '' },
+    { label: 'M02.1.9 Programación Multianual Presupuestaria', value: 'M02.1.9 Programación Multianual Presupuestaria' },
+    { label: 'M02.1.9.1 Asignación Presupuestaria Multianual', value: PROCESO_ASIGNACION },
+    { label: 'M02.1.9.2 Programación Multianual Pliego - UE', value: PROCESO_PROGRAMACION_UE },
+    { label: 'M02.1.10 Formulación y Aprobación del Presupuesto', value: 'M02.1.10 Formulación y Aprobación del Presupuesto' },
+  ];
   readonly opcionesProcesoEdicion = [
     { label: 'M02.1.9 Programación Multianual Presupuestaria', value: 'M02.1.9 Programación Multianual Presupuestaria' },
     { label: 'M02.1.9.1 Asignación Presupuestaria Multianual', value: 'M02.1.9.1 Asignación Presupuestaria Multianual' },
@@ -619,11 +628,15 @@ export class CatalogoVersionesBandejaComponent {
       if (Array.isArray(filasSesion) && filasSesion.length >= BASE_VERSION_ROWS.length) {
         // Migra los nombres solicitados sin eliminar ni duplicar los registros
         // creados durante la demostración ni alterar sus demás datos.
-        const normalizadas = sincronizarNombresDemo((filasSesion as VersionRow[]).map(row =>
+        const normalizadas = this.normalizarEscenarioDemo((filasSesion as VersionRow[]).map(row =>
           (row.id === 1 || row.id === 3) ? { ...row, editable: false } : row
         ));
         this.rows.set(normalizadas);
         this.persistirRows(normalizadas);
+      } else {
+        // Deja los cuatro registros base disponibles también para el formulario
+        // de creación, que calcula su correlativo desde la sesión.
+        this.persistirRows(this.rows());
       }
     } catch { /* Sin sesión previa, se conservan los cuatro registros iniciales. */ }
 
@@ -663,7 +676,6 @@ export class CatalogoVersionesBandejaComponent {
   readonly opcionesVinculadaNombre = computed(() => this.opcionesVinculadas(this.displayedRows().map(row => row.vinculada?.nombre)));
   readonly filteredRows = computed(() => {
     const term = this.search().toLowerCase();
-    const fechaIso = (fecha: string) => fecha === '-' ? '' : fecha.split('/').reverse().join('-');
     const condicion = (valor: boolean, filtro: string) => !filtro || String(valor) === filtro;
     return this.displayedRows().filter(row =>
       (!term || Object.values(row).some(valor => String(valor).toLowerCase().includes(term)))
@@ -675,18 +687,29 @@ export class CatalogoVersionesBandejaComponent {
       && (!this.procesoFiltro() || row.proceso === this.procesoFiltro())
       && (!this.codigoFiltro() || row.codigo === this.codigoFiltro())
       && (!this.nombreFiltro() || row.nombre === this.nombreFiltro())
-      && (!this.vinculadaAnioFiltro() || row.vinculada?.anio === this.vinculadaAnioFiltro())
-      && (!this.vinculadaProcesoFiltro() || row.vinculada?.proceso === this.vinculadaProcesoFiltro())
-      && (!this.vinculadaCodigoFiltro() || row.vinculada?.codigo === this.vinculadaCodigoFiltro())
-      && (!this.vinculadaNombreFiltro() || row.vinculada?.nombre === this.vinculadaNombreFiltro())
-      && (!this.fechaDesdeFiltro() || fechaIso(row.desde) >= this.fechaDesdeFiltro())
-      && (!this.fechaHastaFiltro() || fechaIso(row.hasta) <= this.fechaHastaFiltro())
       && condicion(row.editable, this.editableFiltro())
       && condicion(row.pliego, this.pliegoFiltro())
       && condicion(row.vigente, this.vigenteFiltro())
       && condicion(row.oficial, this.oficialFiltro())
+      && condicion(row.definitiva, this.definitivaFiltro())
       && condicion(row.disponible, this.disponibleFiltro())
     );
+  });
+  readonly filtrosAplicados = computed(() => {
+    const condicion = (etiqueta: string, valor: string) => valor ? `${etiqueta}: ${valor === 'true' ? 'Sí' : 'No'}` : null;
+    return [
+      this.anio() ? `Año: ${this.anio()}` : null,
+      this.procesoFiltro() ? `Proceso: ${this.procesoFiltro()}` : null,
+      this.codigoFiltro() ? `Código: ${this.codigoFiltro()}` : null,
+      this.nombreFiltro() ? `Nombre: ${this.nombreFiltro()}` : null,
+      this.estado() ? `Estado: ${this.estado() === 'todos' ? 'Todos' : this.estado()}` : null,
+      condicion('Editable', this.editableFiltro()),
+      condicion('Pliego', this.pliegoFiltro()),
+      condicion('Vigente', this.vigenteFiltro()),
+      condicion('Oficial', this.oficialFiltro()),
+      condicion('Definitiva', this.definitivaFiltro()),
+      condicion('Disponible', this.disponibleFiltro()),
+    ].filter((filtro): filtro is string => Boolean(filtro));
   });
   // La fila en alta se muestra para editarse, pero aún no es un registro de la
   // bandeja: no debe alterar los contadores ni la paginación hasta grabarse.
@@ -727,7 +750,7 @@ export class CatalogoVersionesBandejaComponent {
   }
   cerrarFiltros(): void { this.filtrosPanelAbierto.set(false); }
   limpiarFiltros(): void {
-    this.anioFiltro.set(''); this.procesoFiltro.set(''); this.codigoFiltro.set(''); this.nombreFiltro.set(''); this.estadoFiltro.set('todos'); this.vinculadaAnioFiltro.set(''); this.vinculadaProcesoFiltro.set(''); this.vinculadaCodigoFiltro.set(''); this.vinculadaNombreFiltro.set(''); this.fechaDesdeFiltro.set(''); this.fechaHastaFiltro.set(''); this.editableFiltro.set(''); this.pliegoFiltro.set(''); this.vigenteFiltro.set(''); this.oficialFiltro.set(''); this.disponibleFiltro.set('');
+    this.anioFiltro.set(ANIO_DEMO); this.procesoFiltro.set(''); this.codigoFiltro.set(''); this.nombreFiltro.set(''); this.estadoFiltro.set('Activo'); this.editableFiltro.set(''); this.pliegoFiltro.set(''); this.vigenteFiltro.set(''); this.oficialFiltro.set(''); this.definitivaFiltro.set(''); this.disponibleFiltro.set('');
   }
   aplicarFiltros(): void { this.snackbarVisible.set(false); this.anio.set(this.anioFiltro()); this.estado.set(this.estadoFiltro()); this.cerrarFiltros(); }
   agregarFiltroDocumento(filter: string): void { if (filter === 'system') this.documentExtraFilterVisible.set(true); }
@@ -741,23 +764,47 @@ export class CatalogoVersionesBandejaComponent {
     const base = structuredClone(BASE_VERSION_ROWS);
     this.rows.set(base); this.persistirRows(base);
     this.filaNueva.set(null); this.draft.set(null); this.editingId.set(null); this.selectedIds.set(new Set());
-    this.reiniciarAutocompletado(); this.editError.set(''); this.search.set(''); this.anio.set(''); this.estado.set('Activo');
+    this.reiniciarAutocompletado(); this.editError.set(''); this.search.set(''); this.anio.set(ANIO_DEMO); this.estado.set('Activo');
+    // El reinicio también recupera la vista inicial de la grilla: sin Descripción
+    // ni el bloque completo de Versión vinculada.
+    this.columnasBorrador.set(new Set(this.columnasIniciales));
+    this.columnasVisibles.set(new Set(this.columnasIniciales));
+    this.columnasExtendidas.set(false);
     this.snackbarVisible.set(false); this.confirmacionReinicioDemoAbierta.set(false);
   }
   cerrarPanelColumnas(): void { this.columnasPanelAbierto.set(false); this.columnasBorrador.set(new Set(this.columnasVisibles())); }
   readonly columnaBorradorVisible = (key: string): boolean => this.columnasBorrador().has(key);
   readonly columnaVisible = (key: string): boolean => this.columnasVisibles().has(key);
   readonly todasColumnasSeleccionadas = computed(() => this.todasLasColumnas.every(key => this.columnasBorrador().has(key)));
+  readonly columnasParcialmenteSeleccionadas = computed(() => !this.todasColumnasSeleccionadas() && this.todasLasColumnas.some(key => this.columnasBorrador().has(key)));
   readonly columnasPanelModificado = computed(() => this.todasLasColumnas.some(key => this.columnasBorrador().has(key) !== this.columnasVisibles().has(key)));
-  seleccionarTodasColumnas(event: Event): void { const checked = (event.target as HTMLInputElement).checked; this.columnasBorrador.set(checked ? new Set(this.todasLasColumnas) : new Set(this.columnasIniciales)); }
-  alternarColumna(key: string, event: Event): void { const next = new Set(this.columnasBorrador()); (event.target as HTMLInputElement).checked ? next.add(key) : next.delete(key); this.columnasBorrador.set(next); }
+  readonly seccionColumnasSeleccionada = (section: ColumnVisibilityPanelSection): boolean => section.columns.every(column => this.columnasBorrador().has(column.key));
+  readonly seccionColumnasParcial = (section: ColumnVisibilityPanelSection): boolean => {
+    const seleccionadas = section.columns.filter(column => this.columnasBorrador().has(column.key)).length;
+    return seleccionadas > 0 && seleccionadas < section.columns.length;
+  };
+  seleccionarTodasColumnas(event: Event): void { const checked = (event.target as HTMLInputElement).checked; this.columnasBorrador.set(checked ? new Set(this.todasLasColumnas) : new Set()); }
+  alternarColumna(key: string, event: Event): void {
+    const section = this.seccionesColumnas.find(current => current.columns.some(column => column.key === key));
+    if (section?.selectionMode === 'grouped') return;
+    const next = new Set(this.columnasBorrador());
+    (event.target as HTMLInputElement).checked ? next.add(key) : next.delete(key);
+    this.columnasBorrador.set(next);
+  }
+  alternarSeccionColumnas(section: ColumnVisibilityPanelSection, event: Event): void {
+    const next = new Set(this.columnasBorrador());
+    const checked = (event.target as HTMLInputElement).checked;
+    section.columns.forEach(column => checked ? next.add(column.key) : next.delete(column.key));
+    this.columnasBorrador.set(next);
+  }
+  restablecerColumnas(): void { this.columnasBorrador.set(new Set(this.columnasIniciales)); }
   aplicarColumnas(): void { this.snackbarVisible.set(false); this.columnasVisibles.set(new Set(this.columnasBorrador())); this.columnasExtendidas.set(this.todasLasColumnas.every(key => this.columnasBorrador().has(key))); this.columnasPanelAbierto.set(false); }
   private columnas(...items: [string, string][]): DocumentsRecordsColumn[] { return items.map(([key, label]) => ({ key, label, visibility: 'visible', group: 'more' })); }
   private opcionesVinculadas(values: Array<string | undefined>): { label: string; value: string }[] {
     const unique = [...new Set(values.filter((value): value is string => Boolean(value)))];
     return [{ label: 'Todos', value: '' }, ...unique.map(value => ({ label: value, value }))];
   }
-  /** Los cambios viven durante la sesión actual; login la reinicia a cuatro filas. */
+  /** Los cambios viven durante la sesión actual; login restablece los registros base. */
   private persistirRows(rows: VersionRow[] = this.rows()): void {
     if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(rows));
   }
@@ -771,7 +818,7 @@ export class CatalogoVersionesBandejaComponent {
       if (!valor) continue;
       const filas = JSON.parse(valor) as VersionRow[];
       // Se conserva la clave histórica y sólo se sincronizan los nombres.
-      const normalizadas = sincronizarNombresDemo(filas);
+      const normalizadas = this.normalizarEscenarioDemo(filas);
       localStorage.setItem(key, JSON.stringify(normalizadas));
       return normalizadas;
     }
@@ -900,10 +947,10 @@ export class CatalogoVersionesBandejaComponent {
   }
   private validarCondicionesDeFila(row: VersionRow): string {
     if (row.disponible && row.editable) return 'Disponible no puede marcarse mientras Editable esté seleccionado.';
-    const otra = (condition: ConditionKey) => this.rows().some(other => other.id !== row.id && other.anio === row.anio && other.proceso === row.proceso && other[condition]);
-    if (row.definitiva && otra('definitiva')) return 'Ya existe una versión marcada como Definitiva para el año y el proceso seleccionados.';
-    if (row.disponible && otra('disponible')) return 'Ya existe una versión marcada como Disponible para el año y el proceso seleccionados.';
-    if (row.vigente && otra('vigente')) return 'Ya existe una versión marcada como Vigente para el año y el proceso seleccionados.';
+    for (const [condicion, etiqueta] of [['oficial', 'Oficial'], ['definitiva', 'Definitiva'], ['disponible', 'Disponible'], ['vigente', 'Vigente']] as const) {
+      const conflicto = this.rows().find(other => other.id !== row.id && other.anio === row.anio && other.proceso === row.proceso && other[condicion]);
+      if (row[condicion] && conflicto) return `No se puede guardar: la versión ${conflicto.codigo} ya tiene la condición ${etiqueta} para el año ${row.anio} y el proceso seleccionado.`;
+    }
     return '';
   }
   crearVersion(): void { void this.router.navigateByUrl('/procesos/catalogo-versiones/nuevo'); }
@@ -929,14 +976,11 @@ export class CatalogoVersionesBandejaComponent {
     if (isNew && field === 'proceso' && value !== draft.proceso) this.retirarAutocompletadosDeProcesoAnterior(draft.proceso, next);
     if (isNew && (field === 'anio' || field === 'proceso')) {
       next.codigo = this.siguienteCodigo(next.anio, next.proceso);
-      // Vigente inicia marcado solo cuando no hay otra versión vigente para
-      // la combinación de Año y Proceso que acaba de seleccionarse.
-      if (next.vigente && this.mensajeConflictoVigente(next)) next.vigente = false;
     }
     if (isNew && field === 'nombre' && !desdeAutocompletado) this.nombreEditadoManualmente.set(true);
     if (isNew && field === 'descripcion' && !desdeAutocompletado) this.descripcionEditadaManualmente.set(true);
     this.draft.set(next);
-    this.editError.set(this.mensajeConflictoVigente(next) || this.mensajeInactivacionBloqueada(next));
+    this.editError.set(this.mensajeConflictoCondiciones(next) || this.mensajeInactivacionBloqueada(next));
   }
   autocompletarNombre(): void {
     const draft = this.draft();
@@ -958,9 +1002,9 @@ export class CatalogoVersionesBandejaComponent {
     const draft = this.draft();
     if (!draft) return;
     if (condition === 'disponible' && checked && draft.editable) { this.editError.set('Disponible no puede marcarse mientras Editable esté seleccionado.'); return; }
-    if (condition === 'vigente' && checked && this.mensajeConflictoVigente({ ...draft, vigente: true })) { this.editError.set('Solo puede existir una versión vigente por proceso y año.'); return; }
-    this.draft.set({ ...draft, [condition]: checked, ...(condition === 'editable' && checked ? { disponible: false } : {}) } as VersionRow);
-    this.editError.set(this.mensajeConflictoVigente(this.draft()!) || this.mensajeInactivacionBloqueada(this.draft()!));
+    const next = { ...draft, [condition]: checked, ...(condition === 'editable' && checked ? { disponible: false } : {}) } as VersionRow;
+    this.draft.set(next);
+    this.editError.set(this.mensajeConflictoCondiciones(next) || this.mensajeInactivacionBloqueada(next));
   }
   motivoGrabacion = (): string => {
     const draft = this.draft(); const id = this.editingId();
@@ -1024,7 +1068,7 @@ export class CatalogoVersionesBandejaComponent {
     const draft = this.draft();
     if (!version || !draft) return;
     this.draft.set({ ...draft, vinculada: { anio: version.anio, proceso: version.proceso, codigo: version.codigo, nombre: version.nombre } });
-    this.editError.set(this.mensajeConflictoVigente(this.draft()!) || this.mensajeInactivacionBloqueada(this.draft()!));
+    this.editError.set(this.mensajeConflictoCondiciones(this.draft()!) || this.mensajeInactivacionBloqueada(this.draft()!));
   }
   private reiniciarAutocompletado(): void {
     this.nombreAutocompletado.set(false); this.descripcionAutocompletada.set(false);
@@ -1046,12 +1090,12 @@ export class CatalogoVersionesBandejaComponent {
   private ejemploDeProceso(proceso: string, codigo: string): { nombre: string; descripcion: string } | undefined {
     const ejemplos: Record<string, { nombre: string; descripcion: string }> = {
       [PROCESO_ASIGNACION]: {
-        nombre: nombreDemoVersion('2026', PROCESO_ASIGNACION, codigo) ?? '',
-        descripcion: 'Versión final del presupuesto operativo para el ejercicio fiscal 2026. Integra ajustes derivados de la proyección de ventas, la optimización de costes directos y la redistribución de recursos en marketing e infraestructura tecnológica. Contempla una reserva para contingencias ante la volatilidad del tipo de cambio y la inflación prevista. Documento revisado y validado por el área de finanzas para su presentación y aprobación por la alta dirección.'
+        nombre: nombreDemoVersion(ANIO_DEMO, PROCESO_ASIGNACION, codigo) ?? `Versión de ${PROCESO_ASIGNACION}`,
+        descripcion: `Versión de demostración del proceso ${PROCESO_ASIGNACION} para el año ${ANIO_DEMO}.`
       },
       [PROCESO_PROGRAMACION_UE]: {
-        nombre: nombreDemoVersion('2026', PROCESO_PROGRAMACION_UE, codigo) ?? '',
-        descripcion: descripcionDemoVersion('2026', PROCESO_PROGRAMACION_UE, codigo) ?? ''
+        nombre: nombreDemoVersion(ANIO_DEMO, PROCESO_PROGRAMACION_UE, codigo) ?? `Versión de ${PROCESO_PROGRAMACION_UE}`,
+        descripcion: descripcionDemoVersion(ANIO_DEMO, PROCESO_PROGRAMACION_UE, codigo) ?? `Versión de demostración del proceso ${PROCESO_PROGRAMACION_UE} para el año ${ANIO_DEMO}.`
       }
     };
     return ejemplos[proceso];
@@ -1061,9 +1105,20 @@ export class CatalogoVersionesBandejaComponent {
     const maximo = this.rows().filter(row => row.anio === anio && row.proceso === proceso).reduce((max, row) => Math.max(max, Number.parseInt(row.codigo, 10) || 0), 0);
     return String(maximo + 1);
   }
-  private mensajeConflictoVigente(row: VersionRow): string {
-    return row.vigente && row.anio.trim() && row.proceso && this.rows().some(other => other.id !== row.id && other.anio === row.anio && other.proceso === row.proceso && other.vigente)
-      ? 'Solo puede existir una versión vigente por proceso y año.' : '';
+  /** Migra sólo el escenario histórico de esta demostración al año centralizado. */
+  private normalizarEscenarioDemo(filas: VersionRow[]): VersionRow[] {
+    return sincronizarNombresDemo(filas.map(fila => ({
+      ...fila,
+      ...(fila.anio === '2026' ? { anio: ANIO_DEMO } : {}),
+      ...(fila.vinculada ? { vinculada: { ...fila.vinculada, ...(fila.vinculada.anio === '2026' ? { anio: ANIO_DEMO } : {}) } } : {}),
+    })));
+  }
+  private mensajeConflictoCondiciones(row: VersionRow): string {
+    for (const [condicion, etiqueta] of [['oficial', 'Oficial'], ['definitiva', 'Definitiva'], ['disponible', 'Disponible'], ['vigente', 'Vigente']] as const) {
+      const conflicto = this.rows().find(other => other.id !== row.id && other.anio === row.anio && other.proceso === row.proceso && other[condicion]);
+      if (row[condicion] && conflicto) return `No se puede guardar: la versión ${conflicto.codigo} ya tiene la condición ${etiqueta} para el año ${row.anio} y el proceso seleccionado.`;
+    }
+    return '';
   }
   private mensajeInactivacionBloqueada(row: VersionRow): string {
     const original = this.rows().find(other => other.id === row.id);
@@ -1095,7 +1150,7 @@ export class CatalogoVersionesBandejaComponent {
     this.documentHistorySummary.set({
       solicitudId: '', document: row.documento, number: row.numero, actionType: row.tipoAccion,
       staticRows: row.numero === '0002'
-        ? [{ usuario: 'JUAN DOE PEREZ', rol: 'DGPP', fecha: '19/02/2026', hora: '08:00:59', estado: 'ACEPTADO', comentario: '' }]
+        ? [{ usuario: 'JUAN DOE PEREZ', rol: 'DGPP', fecha: '19/02/2027', hora: '08:00:59', estado: 'ACEPTADO', comentario: '' }]
         : [],
     });
     this.documentHistoryOpen.set(true);

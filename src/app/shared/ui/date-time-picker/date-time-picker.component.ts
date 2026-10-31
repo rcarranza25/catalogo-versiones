@@ -268,6 +268,8 @@ export class DateTimePickerComponent implements OnChanges, OnInit {
   @Input() error = '';
   @Input() state: DatePickerState = 'enabled';
   @Input() value = '';
+  /** Texto de solo presentación para casos en los que el valor aún no existe. */
+  @Input() displayValueOverride = '';
   @Input() disabled = false;
   @Input() variant: DatePickerVariant = 'date';
   @Input() defaultToToday = true;
@@ -303,7 +305,7 @@ export class DateTimePickerComponent implements OnChanges, OnInit {
   }
 
   get hasValue(): boolean {
-    return Boolean(this.selectedDate);
+    return Boolean(this.selectedDate || this.displayValueOverride);
   }
 
   get floatingLabel(): boolean {
@@ -311,6 +313,10 @@ export class DateTimePickerComponent implements OnChanges, OnInit {
   }
 
   get displayValue(): string {
+    if (this.displayValueOverride) {
+      return this.displayValueOverride;
+    }
+
     if (!this.selectedDate) {
       return '';
     }
