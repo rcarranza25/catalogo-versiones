@@ -63,6 +63,7 @@ export type PaginationPosition = 'Top' | 'Bottom';
             <select
               class="h-8 w-full appearance-none rounded-siaf-md border border-[var(--sys-color-border-states-enabled)] bg-surface py-siaf-xxs pl-siaf-md pr-9 text-sm text-text outline-none transition hover:bg-surface-muted focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)]"
               [value]="rowsPerPage"
+              [disabled]="disabled"
               aria-label="Filas por página"
               (change)="onRowsPerPageChange($event)"
               (click)="rowsPerPageOpened.emit()"
@@ -85,7 +86,7 @@ export type PaginationPosition = 'Top' | 'Bottom';
           <button
             class="inline-flex size-10 items-center justify-center rounded-siaf-md transition hover:bg-surface-muted focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)] disabled:cursor-not-allowed disabled:text-text-muted/60"
             type="button"
-            [disabled]="previousDisabled"
+            [disabled]="previousDisabled || disabled"
             aria-label="Página anterior"
             (click)="previous.emit()"
           >
@@ -94,7 +95,7 @@ export type PaginationPosition = 'Top' | 'Bottom';
           <button
             class="inline-flex size-10 items-center justify-center rounded-siaf-md transition hover:bg-surface-muted focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sys-color-border-states-focus)] disabled:cursor-not-allowed disabled:text-text-muted/60"
             type="button"
-            [disabled]="nextDisabled"
+            [disabled]="nextDisabled || disabled"
             aria-label="Página siguiente"
             (click)="next.emit()"
           >
@@ -125,6 +126,7 @@ export class PaginationComponent {
   @Input() rowPage = false;
   @Input() rowsPerPage = 10;
   @Input() rowsPerPageOptions: number[] = [10, 25, 50, 100];
+  @Input() disabled = false;
 
   @Output() previous = new EventEmitter<void>();
   @Output() next = new EventEmitter<void>();
@@ -151,6 +153,7 @@ export class PaginationComponent {
   }
 
   onRowsPerPageChange(event: Event): void {
+    if (this.disabled) return;
     const value = Number((event.target as HTMLSelectElement).value);
     this.rowsPerPageChange.emit(value);
   }

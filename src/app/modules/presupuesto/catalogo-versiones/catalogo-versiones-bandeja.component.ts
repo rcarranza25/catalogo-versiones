@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 
@@ -21,6 +21,7 @@ import { TooltipDirective } from '../../../shared/ui/tooltip/tooltip.directive';
 import { ColumnVisibilityPanelComponent, ColumnVisibilityPanelSection } from '../../../shared/ui/column-visibility-panel/column-visibility-panel.component';
 import type { DocumentsRecordsColumn } from '../../../shared/types/documents-records.types';
 import { ANIO_DEMO, fechaOperacionActual, nombreDemoVersion, PROCESO_ASIGNACION, PROCESO_PROGRAMACION_UE } from './catalogo-versiones-demo.data';
+import { CatalogConditionEditLockService } from '../../../core/state/catalog-condition-edit-lock.service';
 
 type VersionRow = { id: number; anio: string; proceso: string; codigo: string; nombre: string; descripcion: string; editable: boolean; pliego: boolean; vigente: boolean; oficial: boolean; definitiva: boolean; disponible: boolean; estado: string; desde: string; hasta: string; auditadoEn: string; vinculada?: { anio: string; proceso: string; codigo: string; nombre: string; }; };
 type VersionDocumentRow = { id: number; documento: string; numero: string; tipoAccion: string; estado: string; sistema: string; fecha: string; entidad: string; };
@@ -48,7 +49,7 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
   template: `
     <main class="min-h-[calc(100vh-56px)] overflow-x-hidden bg-[var(--sys-color-bg-surfaces-surface-lowest)] text-text">
       <div class="w-full">
-        <siaf-breadcrumb [items]="breadcrumbs" />
+        <siaf-breadcrumb [items]="breadcrumbs" [class.pointer-events-none]="condicionesEnEdicion()" [class.opacity-50]="condicionesEnEdicion()" [attr.aria-disabled]="condicionesEnEdicion() ? 'true' : null" />
         <siaf-page-header title="CONFIGURACIÓN DE VERSIONES" />
         <section class="w-full p-siaf-md">
           @if (false) {
@@ -129,19 +130,19 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
           <article class="flex w-full min-w-0 flex-col rounded-siaf-md bg-surface">
             <header class="flex h-14 items-center px-siaf-md pt-siaf-md">
               <h2 class="m-0 text-base font-bold uppercase tracking-[0.02px] text-text">Versiones</h2>
-              <siaf-button class="ml-auto" variant="accent" icon="add" [iconOnly]="true" ariaLabel="Registrar versión" (click)="crearVersion()" />
+              <siaf-button class="ml-auto" variant="accent" icon="add" [iconOnly]="true" ariaLabel="Registrar versión" [disabled]="condicionesEnEdicion()" (click)="crearVersion()" />
             </header>
 
             <div class="flex min-w-0 flex-col gap-siaf-xs p-siaf-md">
-              <siaf-records-search-toolbar [value]="search()" placeholder="Buscar" (valueChange)="search.set($any($event))">
+              <siaf-records-search-toolbar [value]="search()" placeholder="Buscar" [disabled]="condicionesEnEdicion()" (valueChange)="actualizarBusqueda($any($event))">
                 <ng-container actions>
-                  <siaf-button variant="text" icon="filter_list" [iconOnly]="true" ariaLabel="Filtros" [activated]="filtrosPanelAbierto()" (click)="abrirFiltros()" />
-                  <siaf-icon-dropdown-menu icon="more_vert" ariaLabel="Más opciones" [items]="optionsMenu" (selected)="manejarMasOpciones($event)" />
+                  <siaf-button variant="text" icon="filter_list" [iconOnly]="true" ariaLabel="Filtros" [activated]="filtrosPanelAbierto()" [disabled]="condicionesEnEdicion()" (click)="abrirFiltros()" />
+                  <siaf-icon-dropdown-menu icon="more_vert" ariaLabel="Más opciones" [items]="optionsMenu" [disabled]="condicionesEnEdicion()" (selected)="manejarMasOpciones($event)" />
                 </ng-container>
               </siaf-records-search-toolbar>
 
               @if (filtrosAplicados().length) {
-                <div class="flex flex-wrap gap-siaf-xs" aria-label="Filtros aplicados">
+                <div class="flex flex-wrap gap-siaf-xs" [class.opacity-50]="condicionesEnEdicion()" aria-label="Filtros aplicados">
                   @for (filtro of filtrosAplicados(); track filtro) {
                     <span class="rounded-full bg-[var(--sys-color-bg-surfaces-surface-high)] px-siaf-sm py-1 text-xs text-text">{{ filtro }}</span>
                   }
@@ -177,7 +178,7 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
                   </thead>
                   <tbody>
                     @for (row of filasPaginadas(); track row.id) {
-                      <tr class="h-[58px] cursor-pointer border-b border-[var(--sys-color-divider-default)] hover:bg-[var(--sys-color-bg-states-light-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--sys-color-border-states-focus)]" [class.condiciones-en-edicion]="esEdicionCondiciones(row.id)" role="button" tabindex="0" [attr.aria-label]="'Editar versión ' + row.codigo" (click)="editarVersion(row)" (keydown.enter)="editarVersion(row)" (keydown.space)="$event.preventDefault(); editarVersion(row)">
+                      <tr class="h-[58px] cursor-pointer border-b border-[var(--sys-color-divider-default)] hover:bg-[var(--sys-color-bg-states-light-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--sys-color-border-states-focus)]" [class.condiciones-en-edicion]="esEdicionCondiciones(row.id)" [class.fila-bloqueada]="condicionesEnEdicion() && !esEdicionCondiciones(row.id)" role="button" [tabindex]="condicionesEnEdicion() ? -1 : 0" [attr.aria-disabled]="condicionesEnEdicion() && !esEdicionCondiciones(row.id) ? 'true' : null" [attr.aria-label]="'Editar versión ' + row.codigo" (click)="editarVersion(row)" (keydown.enter)="editarVersion(row)" (keydown.space)="$event.preventDefault(); editarVersion(row)">
                         @if (columnaVisible('anio')) { <td class="px-siaf-sm">{{ row.anio }}</td> }
                         @if (columnaVisible('proceso')) { <td class="whitespace-normal px-siaf-sm leading-[normal]">{{ row.proceso }}</td> }
                         @if (columnaVisible('codigo')) { <td class="px-siaf-sm">{{ row.codigo }}</td> }
@@ -264,7 +265,7 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
                 <p class="m-0 px-siaf-xs text-sm text-[var(--sys-color-text-error)]" role="alert">{{ errorCondiciones() }}</p>
               }
 
-              <siaf-pagination position="Bottom" [rowPage]="true" [page]="pagina()" [pageSize]="filasPorPagina()" [rowsPerPage]="filasPorPagina()" [totalItems]="persistedFilteredRows().length" [totalPages]="totalPaginas()" (previous)="cambiarPagina(-1)" (next)="cambiarPagina(1)" (rowsPerPageChange)="cambiarFilasPorPagina($event)" />
+              <siaf-pagination position="Bottom" [rowPage]="true" [disabled]="condicionesEnEdicion()" [page]="pagina()" [pageSize]="filasPorPagina()" [rowsPerPage]="filasPorPagina()" [totalItems]="persistedFilteredRows().length" [totalPages]="totalPaginas()" (previous)="cambiarPagina(-1)" (next)="cambiarPagina(1)" (rowsPerPageChange)="cambiarFilasPorPagina($event)" />
             </div>
           </article>
           }
@@ -510,6 +511,15 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
       background-color: #e8f1fa;
     }
 
+    .versiones-grid tbody tr.fila-bloqueada {
+      cursor: not-allowed;
+      opacity: 0.48;
+    }
+
+    .versiones-grid tbody tr.fila-bloqueada:hover > td {
+      background-color: transparent;
+    }
+
     .versiones-grid tbody tr:hover > td.acciones-versiones-fija {
       background-color: #f7f7f7 !important;
     }
@@ -545,9 +555,10 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CatalogoVersionesBandejaComponent {
+export class CatalogoVersionesBandejaComponent implements OnDestroy {
   private readonly router = inject(Router);
   private readonly title = inject(Title);
+  private readonly conditionEditLock = inject(CatalogConditionEditLockService);
   // La bandeja inicia mostrando solo las versiones activas. «Todos» expone
   // también las bajas lógicas sin perder sus fechas ni demás datos.
   readonly search = signal(''); readonly estado = signal('Activo'); readonly anio = signal(ANIO_DEMO); readonly snackbarVisible = signal(false); readonly selectedIds = signal<Set<number>>(new Set());
@@ -574,6 +585,7 @@ export class CatalogoVersionesBandejaComponent {
   readonly descripcionPopoverId = signal<number | null>(null);
   readonly editError = signal('');
   readonly filaEditandoCondiciones = signal<number | null>(null);
+  readonly condicionesEnEdicion = computed(() => this.filaEditandoCondiciones() !== null);
   readonly borradorCondiciones = signal<ConditionDraft | null>(null);
   readonly guardandoCondiciones = signal(false);
   readonly filaGuardandoCondiciones = signal<number | null>(null);
@@ -670,6 +682,9 @@ export class CatalogoVersionesBandejaComponent {
       // llevan un registro de vuelta y por lo tanto no alteran la búsqueda.
       if (!history.state?.['edicionVersion']) this.aplicarFiltroProcesoDeRegistro(registro.proceso);
     }
+  }
+  ngOnDestroy(): void {
+    this.conditionEditLock.setLocked(false);
   }
   readonly documents: VersionDocumentRow[] = [
     { id: 4, documento: 'Documento autogenerado', numero: '0004', tipoAccion: 'Creación', estado: 'Aceptado', sistema: 'Presupuesto', fecha: '15/06/2024', entidad: '009 Ministerio de Economía y Finanzas' },
@@ -768,24 +783,28 @@ export class CatalogoVersionesBandejaComponent {
   });
   readonly allSelected = computed(() => this.filteredRows().length > 0 && this.filteredRows().every(r => this.selectedIds().has(r.id)));
   readonly someSelected = computed(() => !this.allSelected() && this.filteredRows().some(r => this.selectedIds().has(r.id)));
+  actualizarBusqueda(value: string): void { if (!this.condicionesEnEdicion()) this.search.set(value); }
   abrirFiltros(): void {
+    if (this.condicionesEnEdicion()) return;
     this.snackbarVisible.set(false);
     // La vista inicial excluye inactivos; el panel debe reflejar ese filtro implícito.
     this.anioFiltro.set(this.anio()); this.estadoFiltro.set(this.estado());
     this.filtrosPanelAbierto.set(true);
   }
-  cerrarFiltros(): void { this.filtrosPanelAbierto.set(false); }
+  cerrarFiltros(): void { if (!this.condicionesEnEdicion()) this.filtrosPanelAbierto.set(false); }
   limpiarFiltros(): void {
+    if (this.condicionesEnEdicion()) return;
     this.anioFiltro.set(ANIO_DEMO); this.procesoFiltro.set(PROCESO_ASIGNACION); this.codigoFiltro.set(''); this.nombreFiltro.set(''); this.estadoFiltro.set('Activo'); this.editableFiltro.set(''); this.pliegoFiltro.set(''); this.vigenteFiltro.set(''); this.oficialFiltro.set(''); this.definitivaFiltro.set(''); this.disponibleFiltro.set('');
     this.pagina.set(1);
   }
-  aplicarFiltros(): void { this.snackbarVisible.set(false); this.anio.set(this.anioFiltro()); this.estado.set(this.estadoFiltro()); this.pagina.set(1); this.persistirFiltros(); this.cerrarFiltros(); }
-  cambiarProcesoFiltro(value: string): void { this.procesoFiltro.set(value); this.pagina.set(1); }
-  cambiarPagina(delta: number): void { this.pagina.set(Math.min(this.totalPaginas(), Math.max(1, this.pagina() + delta))); }
-  cambiarFilasPorPagina(value: number): void { this.filasPorPagina.set(value); this.pagina.set(1); }
+  aplicarFiltros(): void { if (this.condicionesEnEdicion()) return; this.snackbarVisible.set(false); this.anio.set(this.anioFiltro()); this.estado.set(this.estadoFiltro()); this.pagina.set(1); this.persistirFiltros(); this.cerrarFiltros(); }
+  cambiarProcesoFiltro(value: string): void { if (this.condicionesEnEdicion()) return; this.procesoFiltro.set(value); this.pagina.set(1); }
+  cambiarPagina(delta: number): void { if (this.condicionesEnEdicion()) return; this.pagina.set(Math.min(this.totalPaginas(), Math.max(1, this.pagina() + delta))); }
+  cambiarFilasPorPagina(value: number): void { if (this.condicionesEnEdicion()) return; this.filasPorPagina.set(value); this.pagina.set(1); }
   agregarFiltroDocumento(filter: string): void { if (filter === 'system') this.documentExtraFilterVisible.set(true); }
   agregarFiltroRegistro(filter: string): void { if (filter === 'process') this.recordExtraFilterVisible.set(true); }
   manejarMasOpciones(opcion: string): void {
+    if (this.condicionesEnEdicion()) return;
     if (opcion === 'columns') { this.snackbarVisible.set(false); this.columnasPanelAbierto.set(true); }
     if (opcion === 'reset-demo') this.confirmacionReinicioDemoAbierta.set(true);
   }
@@ -798,6 +817,7 @@ export class CatalogoVersionesBandejaComponent {
     this.snackbarVisible.set(false);
   }
   confirmarReinicioDemo(): void {
+    if (this.condicionesEnEdicion()) return;
     const base = structuredClone(BASE_VERSION_ROWS);
     this.rows.set(base); this.persistirRows(base);
     // Las claves antiguas también deben quedar reemplazadas: si la sesión se
@@ -816,7 +836,7 @@ export class CatalogoVersionesBandejaComponent {
     this.columnasExtendidas.set(false);
     this.snackbarVisible.set(false); this.confirmacionReinicioDemoAbierta.set(false);
   }
-  cerrarPanelColumnas(): void { this.columnasPanelAbierto.set(false); this.columnasBorrador.set(new Set(this.columnasVisibles())); }
+  cerrarPanelColumnas(): void { if (this.condicionesEnEdicion()) return; this.columnasPanelAbierto.set(false); this.columnasBorrador.set(new Set(this.columnasVisibles())); }
   readonly columnaBorradorVisible = (key: string): boolean => this.columnasBorrador().has(key);
   readonly columnaVisible = (key: string): boolean => this.columnasVisibles().has(key);
   readonly todasColumnasSeleccionadas = computed(() => this.todasLasColumnas.every(key => this.columnasBorrador().has(key)));
@@ -827,8 +847,9 @@ export class CatalogoVersionesBandejaComponent {
     const seleccionadas = section.columns.filter(column => this.columnasBorrador().has(column.key)).length;
     return seleccionadas > 0 && seleccionadas < section.columns.length;
   };
-  seleccionarTodasColumnas(event: Event): void { const checked = (event.target as HTMLInputElement).checked; this.columnasBorrador.set(checked ? new Set(this.todasLasColumnas) : new Set()); }
+  seleccionarTodasColumnas(event: Event): void { if (this.condicionesEnEdicion()) return; const checked = (event.target as HTMLInputElement).checked; this.columnasBorrador.set(checked ? new Set(this.todasLasColumnas) : new Set()); }
   alternarColumna(key: string, event: Event): void {
+    if (this.condicionesEnEdicion()) return;
     const section = this.seccionesColumnas.find(current => current.columns.some(column => column.key === key));
     if (section?.selectionMode === 'grouped') return;
     const next = new Set(this.columnasBorrador());
@@ -836,13 +857,14 @@ export class CatalogoVersionesBandejaComponent {
     this.columnasBorrador.set(next);
   }
   alternarSeccionColumnas(section: ColumnVisibilityPanelSection, event: Event): void {
+    if (this.condicionesEnEdicion()) return;
     const next = new Set(this.columnasBorrador());
     const checked = (event.target as HTMLInputElement).checked;
     section.columns.forEach(column => checked ? next.add(column.key) : next.delete(column.key));
     this.columnasBorrador.set(next);
   }
-  restablecerColumnas(): void { this.columnasBorrador.set(new Set(this.columnasIniciales)); }
-  aplicarColumnas(): void { this.snackbarVisible.set(false); this.columnasVisibles.set(new Set(this.columnasBorrador())); this.columnasExtendidas.set(this.todasLasColumnas.every(key => this.columnasBorrador().has(key))); this.columnasPanelAbierto.set(false); }
+  restablecerColumnas(): void { if (!this.condicionesEnEdicion()) this.columnasBorrador.set(new Set(this.columnasIniciales)); }
+  aplicarColumnas(): void { if (this.condicionesEnEdicion()) return; this.snackbarVisible.set(false); this.columnasVisibles.set(new Set(this.columnasBorrador())); this.columnasExtendidas.set(this.todasLasColumnas.every(key => this.columnasBorrador().has(key))); this.columnasPanelAbierto.set(false); }
   private columnas(...items: [string, string][]): DocumentsRecordsColumn[] { return items.map(([key, label]) => ({ key, label, visibility: 'visible', group: 'more' })); }
   private opcionesVinculadas(values: Array<string | undefined>): { label: string; value: string }[] {
     const unique = [...new Set(values.filter((value): value is string => Boolean(value)))];
@@ -927,9 +949,12 @@ export class CatalogoVersionesBandejaComponent {
       return;
     }
     this.errorCondiciones.set('');
+    this.filtrosPanelAbierto.set(false);
+    this.columnasPanelAbierto.set(false);
     const draft = Object.fromEntries(CONDITION_KEYS.map(key => [key, row[key]])) as ConditionDraft;
     this.filaEditandoCondiciones.set(row.id);
     this.borradorCondiciones.set(draft);
+    this.conditionEditLock.setLocked(true);
   }
   actualizarCondicionDeFila(row: VersionRow, condition: ConditionKey, event: Event): void {
     event.stopPropagation();
@@ -1014,6 +1039,7 @@ export class CatalogoVersionesBandejaComponent {
     this.filaEditandoCondiciones.set(null);
     this.borradorCondiciones.set(null);
     this.errorCondiciones.set('');
+    this.conditionEditLock.setLocked(false);
   }
   private validarCondicionesDeFila(row: VersionRow): string {
     if (row.disponible && row.editable) return 'Disponible no puede marcarse mientras Editable esté seleccionado.';
@@ -1023,7 +1049,7 @@ export class CatalogoVersionesBandejaComponent {
     }
     return '';
   }
-  crearVersion(): void { void this.router.navigateByUrl('/procesos/catalogo-versiones/nuevo'); }
+  crearVersion(): void { if (!this.condicionesEnEdicion()) void this.router.navigateByUrl('/procesos/catalogo-versiones/nuevo'); }
   esFilaNueva(id: number): boolean { return this.filaNueva()?.id === id; }
   alternarDescripcionPopover(id: number): void {
     this.descripcionPopoverId.update(current => current === id ? null : id);

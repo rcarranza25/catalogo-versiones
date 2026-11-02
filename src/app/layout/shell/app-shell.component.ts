@@ -16,6 +16,7 @@ import { SidebarComponent, SidebarNavigation } from '../sidebar/sidebar.componen
 import { CurrentUserService } from '../../core/auth/current-user.service';
 import { ShellNavigationService } from './shell-navigation.service';
 import { ADMIN_MENU_TREE, CATALOG_PROCESS_MENU_TREE } from '../../shared/utils/process-tree.util';
+import { CatalogConditionEditLockService } from '../../core/state/catalog-condition-edit-lock.service';
 
 /**
  * Armazón de la app autenticada: navbar, sidebar y los paneles flotantes sobre los que vive el router-outlet.
@@ -42,9 +43,9 @@ import { ADMIN_MENU_TREE, CATALOG_PROCESS_MENU_TREE } from '../../shared/utils/p
   ],
   template: `
     <main class="min-h-screen bg-[var(--sys-color-bg-surfaces-surface-lowest)] text-text">
-      <siaf-navbar class="sticky top-0 z-30 block" [initials]="iniciales()" [userName]="nombreUsuario()" [officeName]="currentUser.office" (menuClicked)="onNavbarMenuClicked()" />
+      <siaf-navbar class="sticky top-0 z-30 block" [class.pointer-events-none]="conditionEditLock.locked()" [class.opacity-50]="conditionEditLock.locked()" [attr.aria-disabled]="conditionEditLock.locked() ? 'true' : null" [initials]="iniciales()" [userName]="nombreUsuario()" [officeName]="currentUser.office" (menuClicked)="onNavbarMenuClicked()" />
 
-      <aside class="fixed bottom-0 left-0 top-14 z-20 hidden lg:block">
+      <aside class="fixed bottom-0 left-0 top-14 z-20 hidden lg:block" [class.pointer-events-none]="conditionEditLock.locked()" [class.opacity-50]="conditionEditLock.locked()" [attr.aria-disabled]="conditionEditLock.locked() ? 'true' : null">
         <siaf-sidebar
           [navigation]="activeNavigation"
           [buttonHelp]="true"
@@ -123,6 +124,7 @@ export class AppShellComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
   private readonly shellNavigation = inject(ShellNavigationService);
+  readonly conditionEditLock = inject(CatalogConditionEditLockService);
   private readonly catalogosApi = inject(CatalogosApiService);
   readonly currentUser = inject(CurrentUserService);
 
@@ -256,6 +258,7 @@ export class AppShellComponent implements OnInit {
   }
 
   onNavigationChange(navigation: SidebarNavigation): void {
+    if (this.conditionEditLock.locked()) return;
     if (navigation === 'Panel') {
       this.activeNavigation = 'Panel';
       this.trayContentOpen = false;
@@ -281,11 +284,13 @@ export class AppShellComponent implements OnInit {
   }
 
   onMobileNavigationChange(navigation: SidebarNavigation): void {
+    if (this.conditionEditLock.locked()) return;
     this.mobileNavigationOpen = false;
     this.onNavigationChange(navigation);
   }
 
   onNavbarMenuClicked(): void {
+    if (this.conditionEditLock.locked()) return;
     if (this.hasFloatingPanel) {
       this.closeFloatingPanels();
       return;
@@ -295,6 +300,7 @@ export class AppShellComponent implements OnInit {
   }
 
   openProcessMenu(): void {
+    if (this.conditionEditLock.locked()) return;
     this.activeNavigation = 'Proceso';
     this.processMenuOpen = true;
     this.trayMenuOpen = false;
@@ -303,6 +309,7 @@ export class AppShellComponent implements OnInit {
   }
 
   openCreateDocument(): void {
+    if (this.conditionEditLock.locked()) return;
     if (!this.puedeCrear) {
       this.closeFloatingPanels();
       return;
@@ -321,6 +328,7 @@ export class AppShellComponent implements OnInit {
   }
 
   onCreateDocumentAccepted(selection: CreateDocumentAccepted): void {
+    if (this.conditionEditLock.locked()) return;
     this.closeFloatingPanels();
 
     if (selection.route) {
@@ -333,6 +341,7 @@ export class AppShellComponent implements OnInit {
   }
 
   onTrayItemSelected(item: string): void {
+    if (this.conditionEditLock.locked()) return;
     this.selectedTrayItem = item;
     this.activeNavigation = 'Bandeja';
     this.trayMenuOpen = this.isDesktopViewport();
@@ -340,6 +349,7 @@ export class AppShellComponent implements OnInit {
   }
 
   onProcessNodeSelected(node: ProcessMenuNode): void {
+    if (this.conditionEditLock.locked()) return;
     // moduleRoute → página principal del módulo (documentos y registros)
     // createRoute → fallback si no hay moduleRoute
     const targetRoute = node.moduleRoute ?? node.createRoute;
@@ -358,6 +368,7 @@ export class AppShellComponent implements OnInit {
   readonly adminMenuTree = ADMIN_MENU_TREE;
 
   onAdminNodeSelected(node: ProcessMenuNode): void {
+    if (this.conditionEditLock.locked()) return;
     if (node.createRoute) {
       this.closeFloatingPanels();
       void this.router.navigateByUrl(node.createRoute);

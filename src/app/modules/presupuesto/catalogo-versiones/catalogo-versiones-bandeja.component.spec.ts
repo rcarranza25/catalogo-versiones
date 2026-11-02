@@ -108,4 +108,40 @@ describe('CatalogoVersionesBandejaComponent', () => {
 
     expect(component.procesoFiltro()).toBe(PROCESO_ASIGNACION);
   });
+
+  it('bloquea los controles de la bandeja mientras edita condiciones y los libera al cancelar', async () => {
+    const component = await crearComponente();
+    const row = component.rows()[0];
+    component.alternarEdicionCondiciones(row, new MouseEvent('click'));
+
+    expect(component.condicionesEnEdicion()).toBeTrue();
+    expect(component.filtrosPanelAbierto()).toBeFalse();
+    const paginaInicial = component.pagina();
+    component.abrirFiltros();
+    component.cambiarPagina(1);
+    component.cambiarProcesoFiltro(PROCESO_PROGRAMACION_UE);
+    expect(component.filtrosPanelAbierto()).toBeFalse();
+    expect(component.pagina()).toBe(paginaInicial);
+    expect(component.procesoFiltro()).toBe(PROCESO_ASIGNACION);
+
+    component.confirmarCancelacionCondiciones();
+    expect(component.condicionesEnEdicion()).toBeFalse();
+    expect(component.rows()[0].vigente).toBeFalse();
+  });
+
+  it('mantiene el bloqueo tras una validación fallida y lo libera al grabar', async () => {
+    const component = await crearComponente();
+    const row = component.rows()[0];
+    component.alternarEdicionCondiciones(row, new MouseEvent('click'));
+    component.borradorCondiciones.set({ ...row, editable: true, disponible: true });
+    component.confirmarGrabacionCondiciones();
+
+    expect(component.condicionesEnEdicion()).toBeTrue();
+    expect(component.errorCondiciones()).toContain('Disponible');
+
+    component.borradorCondiciones.set({ ...row, vigente: true });
+    component.confirmarGrabacionCondiciones();
+    expect(component.condicionesEnEdicion()).toBeFalse();
+    expect(component.rows()[0].vigente).toBeTrue();
+  });
 });
