@@ -297,8 +297,8 @@ export class CatalogoVersionesRegistroComponent {
   readonly codigo = signal(this.registroEdicion?.codigo ?? '');
   readonly nombre = signal(this.registroEdicion?.nombre ?? '');
   readonly descripcion = signal(this.registroEdicion?.descripcion ?? '');
-  // Una alta inicia con Vigente activo; en edición se conserva lo registrado.
-  readonly editable = signal(this.registroEdicion?.editable ?? false); readonly pliego = signal(this.registroEdicion?.pliego ?? false); readonly vigente = signal(this.registroEdicion?.vigente ?? true);
+  // Una alta inicia con Vigente desmarcado; solo una edición recupera el valor registrado.
+  readonly editable = signal(this.registroEdicion?.editable ?? false); readonly pliego = signal(this.registroEdicion?.pliego ?? false); readonly vigente = signal(this.esEdicion ? (this.registroEdicion?.vigente ?? false) : false);
   readonly oficial = signal(this.registroEdicion?.oficial ?? false);
   readonly definitiva = signal(this.registroEdicion?.definitiva ?? false);
   readonly disponible = signal(this.registroEdicion?.disponible ?? false);
@@ -593,7 +593,7 @@ export class CatalogoVersionesRegistroComponent {
         && vinculada.codigo === actual.codigo && vinculada.nombre === actual.nombre);
     if (!this.esEdicion) {
       return Boolean(this.anio().trim() !== ANIO_DEMO || proceso || this.codigo().trim() || this.nombre().trim() || this.descripcion().trim()
-        || this.editable() || this.pliego() || this.disponible() || this.definitiva() || this.vigente() !== true
+        || this.editable() || this.pliego() || this.disponible() || this.definitiva() || this.vigente()
         || this.estado() !== 'activo' || this.fechaDesde() || vinculada);
     }
     const inicial = this.registroEdicion!;
