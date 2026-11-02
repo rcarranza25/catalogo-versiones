@@ -26,6 +26,7 @@ type VersionRow = { id: number; anio: string; proceso: string; codigo: string; n
 type VersionDocumentRow = { id: number; documento: string; numero: string; tipoAccion: string; estado: string; sistema: string; fecha: string; entidad: string; };
 type ConditionKey = 'editable' | 'pliego' | 'vigente' | 'oficial' | 'definitiva' | 'disponible';
 type ConditionDraft = Pick<VersionRow, ConditionKey>;
+type CatalogFilters = { anio: string; proceso: string; codigo: string; nombre: string; estado: string; editable: string; pliego: string; vigente: string; oficial: string; definitiva: string; disponible: string; };
 
 const CONDITION_KEYS: ConditionKey[] = ['editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible'];
 
@@ -37,6 +38,7 @@ const BASE_VERSION_ROWS: VersionRow[] = [
   { id: 4, anio: ANIO_DEMO, proceso: PROCESO_ASIGNACION, codigo: '4', nombre: nombreDemoVersion(ANIO_DEMO, PROCESO_ASIGNACION, '4')!, descripcion: 'Versión aprobada.', editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '20/08/2026', hasta: '-', auditadoEn: '20/08/2026 11:00' },
 ];
 const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
+const FILTERS_STORAGE_KEY = 'siaf.catalogo-versiones.filters.v1';
 const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.catalogo-versiones.rows'];
 
 @Component({
@@ -174,7 +176,7 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
                     <tr class="h-10 border-b border-[var(--sys-color-divider-default)]">@for (condition of condicionesVisibles(); track condition) { <th class="w-[100px] px-siaf-md text-left" [class.condicion-divider-inicio]="condition === 'editable'" [class.condicion-divider-fin]="condition === 'disponible'">{{ etiquetaColumna(condition) }}</th> } @for (column of vinculadasVisibles(); track column) { <th [class]="anchoColumnaVinculada(column)">{{ etiquetaColumna(column) }}</th> }</tr>
                   </thead>
                   <tbody>
-                    @for (row of filteredRows(); track row.id) {
+                    @for (row of filasPaginadas(); track row.id) {
                       <tr class="h-[58px] cursor-pointer border-b border-[var(--sys-color-divider-default)] hover:bg-[var(--sys-color-bg-states-light-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--sys-color-border-states-focus)]" [class.condiciones-en-edicion]="esEdicionCondiciones(row.id)" role="button" tabindex="0" [attr.aria-label]="'Editar versión ' + row.codigo" (click)="editarVersion(row)" (keydown.enter)="editarVersion(row)" (keydown.space)="$event.preventDefault(); editarVersion(row)">
                         @if (columnaVisible('anio')) { <td class="px-siaf-sm">{{ row.anio }}</td> }
                         @if (columnaVisible('proceso')) { <td class="whitespace-normal px-siaf-sm leading-[normal]">{{ row.proceso }}</td> }
@@ -262,7 +264,7 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
                 <p class="m-0 px-siaf-xs text-sm text-[var(--sys-color-text-error)]" role="alert">{{ errorCondiciones() }}</p>
               }
 
-              <siaf-pagination position="Bottom" [rowPage]="true" [page]="1" [pageSize]="10" [totalItems]="persistedFilteredRows().length" [totalPages]="1" />
+              <siaf-pagination position="Bottom" [rowPage]="true" [page]="pagina()" [pageSize]="filasPorPagina()" [rowsPerPage]="filasPorPagina()" [totalItems]="persistedFilteredRows().length" [totalPages]="totalPaginas()" (previous)="cambiarPagina(-1)" (next)="cambiarPagina(1)" (rowsPerPageChange)="cambiarFilasPorPagina($event)" />
             </div>
           </article>
           }
@@ -279,7 +281,7 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
       >
         <div class="grid gap-siaf-lg">
           <siaf-input type="select" label="Año" [autoSuccess]="false" [options]="opcionesAnio" [value]="anioFiltro()" (valueChange)="anioFiltro.set($any($event))" />
-          <siaf-input type="select" label="Proceso" [autoSuccess]="false" [options]="opcionesProceso" [value]="procesoFiltro()" (valueChange)="procesoFiltro.set($any($event))" />
+          <siaf-input type="select" label="Proceso" [autoSuccess]="false" [options]="opcionesProceso" [value]="procesoFiltro()" (valueChange)="cambiarProcesoFiltro($any($event))" />
           <siaf-input type="select" label="Código" [autoSuccess]="false" [options]="opcionesCodigo" [value]="codigoFiltro()" (valueChange)="codigoFiltro.set($any($event))" />
           <siaf-input type="select" label="Nombre" [autoSuccess]="false" [options]="opcionesNombre()" [value]="nombreFiltro()" (valueChange)="nombreFiltro.set($any($event))" />
           <siaf-input type="select" label="Estado" [autoSuccess]="false" [options]="opcionesEstado" [value]="estadoFiltro()" (valueChange)="estadoFiltro.set($any($event))" />
@@ -549,6 +551,8 @@ export class CatalogoVersionesBandejaComponent {
   // La bandeja inicia mostrando solo las versiones activas. «Todos» expone
   // también las bajas lógicas sin perder sus fechas ni demás datos.
   readonly search = signal(''); readonly estado = signal('Activo'); readonly anio = signal(ANIO_DEMO); readonly snackbarVisible = signal(false); readonly selectedIds = signal<Set<number>>(new Set());
+  readonly pagina = signal(1);
+  readonly filasPorPagina = signal(10);
   readonly filtrosPanelAbierto = signal(false);
   readonly activeTab = signal<'documents' | 'records'>(history.state?.['activeTab'] === 'records' ? 'records' : 'documents');
   readonly documentSearch = signal('');
@@ -650,6 +654,8 @@ export class CatalogoVersionesBandejaComponent {
       }
     } catch { /* Sin sesión previa, se conservan los cuatro registros iniciales. */ }
 
+    this.restaurarFiltrosDeSesion();
+
     const registro = history.state?.['registroVersion'] as VersionRow | undefined;
     if (registro) {
       this.rows.update(rows => {
@@ -659,6 +665,10 @@ export class CatalogoVersionesBandejaComponent {
       this.mensajeSnackbar.set(history.state?.['mensajeResultado'] ?? (history.state?.['edicionVersion'] ? 'Registro actualizado con éxito' : 'Registro agregado con éxito'));
       this.snackbarVisible.set(true);
       this.persistirRows();
+      // El retorno de una alta es el único punto que reemplaza el proceso
+      // filtrado. Las ediciones, cancelaciones y validaciones fallidas no
+      // llevan un registro de vuelta y por lo tanto no alteran la búsqueda.
+      if (!history.state?.['edicionVersion']) this.aplicarFiltroProcesoDeRegistro(registro.proceso);
     }
   }
   readonly documents: VersionDocumentRow[] = [
@@ -724,6 +734,12 @@ export class CatalogoVersionesBandejaComponent {
   // La fila en alta se muestra para editarse, pero aún no es un registro de la
   // bandeja: no debe alterar los contadores ni la paginación hasta grabarse.
   readonly persistedFilteredRows = computed(() => this.filteredRows().filter(row => !this.esFilaNueva(row.id)));
+  readonly totalPaginas = computed(() => Math.max(1, Math.ceil(this.persistedFilteredRows().length / this.filasPorPagina())));
+  readonly filasPaginadas = computed(() => {
+    const page = Math.min(this.pagina(), this.totalPaginas());
+    const start = (page - 1) * this.filasPorPagina();
+    return this.persistedFilteredRows().slice(start, start + this.filasPorPagina());
+  });
   readonly versionesVinculables = computed(() => {
     const current = this.draft();
     return this.rows().filter(row =>
@@ -761,8 +777,12 @@ export class CatalogoVersionesBandejaComponent {
   cerrarFiltros(): void { this.filtrosPanelAbierto.set(false); }
   limpiarFiltros(): void {
     this.anioFiltro.set(ANIO_DEMO); this.procesoFiltro.set(''); this.codigoFiltro.set(''); this.nombreFiltro.set(''); this.estadoFiltro.set('Activo'); this.editableFiltro.set(''); this.pliegoFiltro.set(''); this.vigenteFiltro.set(''); this.oficialFiltro.set(''); this.definitivaFiltro.set(''); this.disponibleFiltro.set('');
+    this.pagina.set(1);
   }
-  aplicarFiltros(): void { this.snackbarVisible.set(false); this.anio.set(this.anioFiltro()); this.estado.set(this.estadoFiltro()); this.cerrarFiltros(); }
+  aplicarFiltros(): void { this.snackbarVisible.set(false); this.anio.set(this.anioFiltro()); this.estado.set(this.estadoFiltro()); this.pagina.set(1); this.persistirFiltros(); this.cerrarFiltros(); }
+  cambiarProcesoFiltro(value: string): void { this.procesoFiltro.set(value); this.pagina.set(1); }
+  cambiarPagina(delta: number): void { this.pagina.set(Math.min(this.totalPaginas(), Math.max(1, this.pagina() + delta))); }
+  cambiarFilasPorPagina(value: number): void { this.filasPorPagina.set(value); this.pagina.set(1); }
   agregarFiltroDocumento(filter: string): void { if (filter === 'system') this.documentExtraFilterVisible.set(true); }
   agregarFiltroRegistro(filter: string): void { if (filter === 'process') this.recordExtraFilterVisible.set(true); }
   manejarMasOpciones(opcion: string): void {
@@ -788,6 +808,7 @@ export class CatalogoVersionesBandejaComponent {
     this.filaNueva.set(null); this.draft.set(null); this.editingId.set(null); this.selectedIds.set(new Set());
     this.limpiarFiltros();
     this.editError.set(''); this.search.set(''); this.anio.set(ANIO_DEMO); this.estado.set('Activo');
+    this.borrarFiltrosPersistidos();
     // El reinicio también recupera la vista inicial de la grilla: sin Descripción
     // ni el bloque completo de Versión vinculada.
     this.columnasBorrador.set(new Set(this.columnasIniciales));
@@ -830,6 +851,32 @@ export class CatalogoVersionesBandejaComponent {
   /** Los cambios viven durante la sesión actual; login restablece los registros base. */
   private persistirRows(rows: VersionRow[] = this.rows()): void {
     if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(rows));
+  }
+  /** Los filtros de la grilla sobreviven volver del formulario durante la sesión. */
+  private persistirFiltros(): void {
+    if (typeof sessionStorage === 'undefined') return;
+    const filtros: CatalogFilters = {
+      anio: this.anio(), proceso: this.procesoFiltro(), codigo: this.codigoFiltro(), nombre: this.nombreFiltro(), estado: this.estado(),
+      editable: this.editableFiltro(), pliego: this.pliegoFiltro(), vigente: this.vigenteFiltro(), oficial: this.oficialFiltro(), definitiva: this.definitivaFiltro(), disponible: this.disponibleFiltro(),
+    };
+    sessionStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(filtros));
+  }
+  private restaurarFiltrosDeSesion(): void {
+    if (typeof sessionStorage === 'undefined') return;
+    try {
+      const filtros = JSON.parse(sessionStorage.getItem(FILTERS_STORAGE_KEY) ?? 'null') as CatalogFilters | null;
+      if (!filtros) return;
+      this.anio.set(filtros.anio); this.anioFiltro.set(filtros.anio); this.procesoFiltro.set(filtros.proceso); this.codigoFiltro.set(filtros.codigo); this.nombreFiltro.set(filtros.nombre); this.estado.set(filtros.estado); this.estadoFiltro.set(filtros.estado);
+      this.editableFiltro.set(filtros.editable); this.pliegoFiltro.set(filtros.pliego); this.vigenteFiltro.set(filtros.vigente); this.oficialFiltro.set(filtros.oficial); this.definitivaFiltro.set(filtros.definitiva); this.disponibleFiltro.set(filtros.disponible);
+    } catch { this.borrarFiltrosPersistidos(); }
+  }
+  private borrarFiltrosPersistidos(): void {
+    if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(FILTERS_STORAGE_KEY);
+  }
+  private aplicarFiltroProcesoDeRegistro(proceso: string): void {
+    this.procesoFiltro.set(proceso);
+    this.pagina.set(1);
+    this.persistirFiltros();
   }
   private leerFilasPersistidas(): VersionRow[] | null {
     const sesion = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(SESSION_STORAGE_KEY) : null;
