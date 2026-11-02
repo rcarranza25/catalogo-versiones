@@ -585,7 +585,7 @@ export class CatalogoVersionesBandejaComponent {
   readonly columnasBorrador = signal<Set<string>>(new Set(['anio', 'proceso', 'codigo', 'nombre', 'editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible', 'estado', 'desde', 'hasta']));
   readonly columnasVisibles = signal<Set<string>>(new Set(this.columnasBorrador()));
   private readonly columnasIniciales = new Set(['anio', 'proceso', 'codigo', 'nombre', 'editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible', 'estado', 'desde', 'hasta']);
-  readonly anioFiltro = signal(ANIO_DEMO); readonly procesoFiltro = signal(''); readonly codigoFiltro = signal(''); readonly nombreFiltro = signal(''); readonly estadoFiltro = signal('Activo'); readonly editableFiltro = signal(''); readonly pliegoFiltro = signal(''); readonly vigenteFiltro = signal(''); readonly oficialFiltro = signal(''); readonly definitivaFiltro = signal(''); readonly disponibleFiltro = signal('');
+  readonly anioFiltro = signal(ANIO_DEMO); readonly procesoFiltro = signal(PROCESO_ASIGNACION); readonly codigoFiltro = signal(''); readonly nombreFiltro = signal(''); readonly estadoFiltro = signal('Activo'); readonly editableFiltro = signal(''); readonly pliegoFiltro = signal(''); readonly vigenteFiltro = signal(''); readonly oficialFiltro = signal(''); readonly definitivaFiltro = signal(''); readonly disponibleFiltro = signal('');
   readonly mensajeSnackbar = signal('');
   readonly tituloConfirmacionCancelacionFila = computed(() => this.editingId() !== null && this.esFilaNueva(this.editingId()!) ? '¿Está seguro(a) de cancelar el registro?' : '¿Está seguro(a) de cancelar la edición?');
   readonly breadcrumbs = [
@@ -776,7 +776,7 @@ export class CatalogoVersionesBandejaComponent {
   }
   cerrarFiltros(): void { this.filtrosPanelAbierto.set(false); }
   limpiarFiltros(): void {
-    this.anioFiltro.set(ANIO_DEMO); this.procesoFiltro.set(''); this.codigoFiltro.set(''); this.nombreFiltro.set(''); this.estadoFiltro.set('Activo'); this.editableFiltro.set(''); this.pliegoFiltro.set(''); this.vigenteFiltro.set(''); this.oficialFiltro.set(''); this.definitivaFiltro.set(''); this.disponibleFiltro.set('');
+    this.anioFiltro.set(ANIO_DEMO); this.procesoFiltro.set(PROCESO_ASIGNACION); this.codigoFiltro.set(''); this.nombreFiltro.set(''); this.estadoFiltro.set('Activo'); this.editableFiltro.set(''); this.pliegoFiltro.set(''); this.vigenteFiltro.set(''); this.oficialFiltro.set(''); this.definitivaFiltro.set(''); this.disponibleFiltro.set('');
     this.pagina.set(1);
   }
   aplicarFiltros(): void { this.snackbarVisible.set(false); this.anio.set(this.anioFiltro()); this.estado.set(this.estadoFiltro()); this.pagina.set(1); this.persistirFiltros(); this.cerrarFiltros(); }

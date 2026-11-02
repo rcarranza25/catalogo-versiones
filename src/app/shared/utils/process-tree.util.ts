@@ -174,20 +174,17 @@ export const CATALOG_PROCESS_MENU_TREE: ProcessMenuNode[] = [
       {
         id: 'catalogos-catalogo',
         label: 'Catálogos',
-        expanded: true,
         children: [
-          { id: 'catalogo-actividades', label: 'Catálogo de actividades', comingSoon: true },
-          { id: 'catalogo-indicadores-produccion-fisica', label: 'Catálogo de indicadores de producción física', comingSoon: true },
-          { id: 'catalogo-productos', label: 'Catálogo de productos', comingSoon: true },
+          { id: 'catalogo-actividades', label: 'Catálogo de actividades', comingSoon: true, children: [] },
+          { id: 'catalogo-indicadores-produccion-fisica', label: 'Catálogo de indicadores de producción física', comingSoon: true, children: [] },
+          { id: 'catalogo-productos', label: 'Catálogo de productos', comingSoon: true, children: [] },
           {
             id: 'catalogo-versiones-presupuesto',
             label: 'Catálogo de versiones de presupuesto',
-            expanded: true,
             children: [
               {
                 id: 'catalogo-versiones-configurador',
                 label: 'Configuración de versiones',
-                selected: true,
                 moduleRoute: '/procesos/catalogo-versiones',
               },
             ],

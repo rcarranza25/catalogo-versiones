@@ -27,6 +27,32 @@ describe('ProcessMenuTreeComponent', () => {
     expect(versiones.children![0].label).toBe('Configuración de versiones');
   });
 
+  it('inicia con Clasificadores y catálogos abierto y los siguientes grupos contraídos', () => {
+    const component = fixture.componentInstance;
+    const clasificadores = CATALOG_PROCESS_MENU_TREE[1];
+    const catalogos = clasificadores.children![1];
+    const versiones = catalogos.children![3];
+
+    expect(component.isExpanded(clasificadores)).toBeTrue();
+    expect(component.isExpanded(catalogos)).toBeFalse();
+    expect(component.isExpanded(versiones)).toBeFalse();
+  });
+
+  it('muestra chevrons en los catálogos de referencia sin navegar al activarlos', () => {
+    const component = fixture.componentInstance;
+    const catalogos = CATALOG_PROCESS_MENU_TREE[1].children![1];
+    const actividades = catalogos.children![0];
+    const indicadores = catalogos.children![1];
+    const productos = catalogos.children![2];
+    const seleccionados: string[] = [];
+    component.nodeSelected.subscribe(node => seleccionados.push(node.id));
+
+    [actividades, indicadores, productos].forEach(node => component.activate(node));
+
+    expect([actividades, indicadores, productos].every(node => component.canExpand(node))).toBeTrue();
+    expect(seleccionados).toEqual([]);
+  });
+
   it('emite la ruta existente al seleccionar Configuración de versiones', () => {
     const component = fixture.componentInstance;
     const selected: string[] = [];

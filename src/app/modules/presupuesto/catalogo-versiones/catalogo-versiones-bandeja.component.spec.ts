@@ -24,6 +24,30 @@ describe('CatalogoVersionesBandejaComponent', () => {
     return fixture.componentInstance;
   }
 
+  it('inicia la demo con APM, Año 2027 y Estado Activo', async () => {
+    const component = await crearComponente();
+
+    expect(component.anio()).toBe('2027');
+    expect(component.estado()).toBe('Activo');
+    expect(component.procesoFiltro()).toBe(PROCESO_ASIGNACION);
+    expect(component.filtrosAplicados()).toContain(`Proceso: ${PROCESO_ASIGNACION}`);
+    expect(component.persistedFilteredRows()).toHaveSize(4);
+    component.abrirFiltros();
+    expect(component.procesoFiltro()).toBe(PROCESO_ASIGNACION);
+  });
+
+  it('reinicia demo restaurando APM como filtro inicial', async () => {
+    const component = await crearComponente();
+    component.cambiarProcesoFiltro(PROCESO_PROGRAMACION_UE);
+    component.aplicarFiltros();
+
+    component.confirmarReinicioDemo();
+
+    expect(component.procesoFiltro()).toBe(PROCESO_ASIGNACION);
+    expect(component.persistedFilteredRows()).toHaveSize(4);
+    expect(sessionStorage.getItem(FILTERS_STORAGE_KEY)).toBeNull();
+  });
+
   it('aplica el proceso de una alta exitosa, reemplaza el anterior y conserva los demás filtros', async () => {
     sessionStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify({
       anio: '2027', proceso: PROCESO_ASIGNACION, codigo: '', nombre: '', estado: 'Activo',
