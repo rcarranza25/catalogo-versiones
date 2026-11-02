@@ -153,6 +153,56 @@ export const DEFAULT_PROCESS_TREE: ProcessMenuNode[] = [
   },
 ];
 
+/**
+ * Árbol del panel lateral «PROCESOS» para los catálogos de presupuesto.
+ * Las referencias sin ruta son solo agrupadores visuales: no inventan
+ * pantallas ni navegación. Se mantiene separado del árbol documental para
+ * no alterar las opciones de «Crear documento» de otros módulos.
+ */
+export const CATALOG_PROCESS_MENU_TREE: ProcessMenuNode[] = [
+  {
+    id: 'procesos-presupuesto-catalogo',
+    label: 'Procesos presupuesto',
+    children: [],
+  },
+  {
+    id: 'clasificadores-catalogos-catalogo',
+    label: 'Clasificadores y catálogos',
+    expanded: true,
+    children: [
+      { id: 'clasificadores-catalogo', label: 'Clasificadores', children: [] },
+      {
+        id: 'catalogos-catalogo',
+        label: 'Catálogos',
+        expanded: true,
+        children: [
+          { id: 'catalogo-actividades', label: 'Catálogo de actividades', comingSoon: true },
+          { id: 'catalogo-indicadores-produccion-fisica', label: 'Catálogo de indicadores de producción física', comingSoon: true },
+          { id: 'catalogo-productos', label: 'Catálogo de productos', comingSoon: true },
+          {
+            id: 'catalogo-versiones-presupuesto',
+            label: 'Catálogo de versiones de presupuesto',
+            expanded: true,
+            children: [
+              {
+                id: 'catalogo-versiones-configurador',
+                label: 'Configuración de versiones',
+                selected: true,
+                moduleRoute: '/procesos/catalogo-versiones',
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'consultas-reportes-catalogo',
+    label: 'Consultas y reportes',
+    children: [],
+  },
+];
+
 export function findProcessPathById(id: string, nodes: readonly ProcessMenuNode[] = DEFAULT_PROCESS_TREE): ProcessMenuNode[] {
   for (const node of nodes) {
     if (node.id === id) {

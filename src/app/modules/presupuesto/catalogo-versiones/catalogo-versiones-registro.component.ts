@@ -215,9 +215,9 @@ export class CatalogoVersionesRegistroComponent {
 
   readonly breadcrumbs = [
     { label: 'Inicio', href: '/panel' },
-    { label: 'Procesos presupuesto' },
     { label: 'Clasificadores y catálogos' },
-    { label: 'Catálogo de versiones', href: '/procesos/catalogo-versiones' },
+    { label: 'Catálogos' },
+    { label: 'Catálogo de versiones de presupuesto', href: '/procesos/catalogo-versiones' },
     { label: 'Configuración de versiones', href: '/procesos/catalogo-versiones' },
     { label: this.esEdicion ? 'Editar registro de versión' : 'Agregar registro de versión' },
   ];

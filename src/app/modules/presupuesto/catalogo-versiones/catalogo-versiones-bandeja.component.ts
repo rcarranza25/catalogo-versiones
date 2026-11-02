@@ -590,9 +590,9 @@ export class CatalogoVersionesBandejaComponent {
   readonly tituloConfirmacionCancelacionFila = computed(() => this.editingId() !== null && this.esFilaNueva(this.editingId()!) ? '¿Está seguro(a) de cancelar el registro?' : '¿Está seguro(a) de cancelar la edición?');
   readonly breadcrumbs = [
     { label: 'Inicio', href: '/panel' },
-    { label: 'Procesos presupuesto' },
     { label: 'Clasificadores y catálogos' },
-    { label: 'Catálogo de versiones', href: '/procesos/catalogo-versiones' },
+    { label: 'Catálogos' },
+    { label: 'Catálogo de versiones de presupuesto', href: '/procesos/catalogo-versiones' },
     { label: 'Configuración de versiones' },
   ];
   /** Esta pantalla representa el listado de registros; no crea documentos desde el catálogo. */

@@ -215,7 +215,10 @@ export class ProcessMenuTreeComponent implements OnChanges, OnInit {
   }
 
   canExpand(node: ProcessMenuNode): boolean {
-    return node.showChildren !== false && Boolean(node.children?.length);
+    // Un grupo puede declarar explícitamente una rama vacía para conservar su
+    // chevron y permitir contraer/expandir la jerarquía, aun cuando todavía
+    // no existan opciones implementadas debajo.
+    return node.showChildren !== false && node.children !== undefined;
   }
 
   isExpanded(node: ProcessMenuNode): boolean {

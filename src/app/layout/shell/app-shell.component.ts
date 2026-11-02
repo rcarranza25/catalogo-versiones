@@ -15,7 +15,7 @@ import { NavbarComponent } from '../navbar/navbar.component';
 import { SidebarComponent, SidebarNavigation } from '../sidebar/sidebar.component';
 import { CurrentUserService } from '../../core/auth/current-user.service';
 import { ShellNavigationService } from './shell-navigation.service';
-import { ADMIN_MENU_TREE } from '../../shared/utils/process-tree.util';
+import { ADMIN_MENU_TREE, CATALOG_PROCESS_MENU_TREE } from '../../shared/utils/process-tree.util';
 
 /**
  * Armazón de la app autenticada: navbar, sidebar y los paneles flotantes sobre los que vive el router-outlet.
@@ -67,7 +67,7 @@ import { ADMIN_MENU_TREE } from '../../shared/utils/process-tree.util';
 
       @if (processMenuOpen) {
         <div class="fixed inset-x-0 bottom-0 top-14 z-20 lg:left-16 lg:right-auto" (click)="$event.stopPropagation()">
-          <siaf-process-menu-tree (nodeSelected)="onProcessNodeSelected($event)" />
+          <siaf-process-menu-tree [nodes]="catalogProcessMenuTree" (nodeSelected)="onProcessNodeSelected($event)" />
         </div>
       }
 
@@ -158,6 +158,8 @@ export class AppShellComponent implements OnInit {
   private readonly fallbackOptions: CreateDocumentProcessOption[] = [...CREATE_DOCUMENT_OPTIONS];
 
   readonly createDocumentOptions = signal<CreateDocumentProcessOption[]>(this.fallbackOptions);
+  /** Árbol específico del panel Procesos: referencias sin rutas ficticias. */
+  readonly catalogProcessMenuTree = CATALOG_PROCESS_MENU_TREE;
 
   ngOnInit(): void {
     this.catalogosApi.listarTiposDocumento().subscribe({
