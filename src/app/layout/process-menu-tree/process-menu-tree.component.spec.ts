@@ -31,33 +31,24 @@ describe('ProcessMenuTreeComponent', () => {
     const component = fixture.componentInstance;
     const clasificadores = CATALOG_PROCESS_MENU_TREE[1];
     const catalogos = clasificadores.children![1];
-    const versiones = catalogos.children![3];
+    const versiones = catalogos.children![0];
 
     expect(component.isExpanded(clasificadores)).toBeTrue();
     expect(component.isExpanded(catalogos)).toBeFalse();
     expect(component.isExpanded(versiones)).toBeFalse();
   });
 
-  it('muestra chevrons en los catálogos de referencia sin navegar al activarlos', () => {
-    const component = fixture.componentInstance;
+  it('muestra únicamente Catálogo de versiones de presupuesto dentro de Catálogos', () => {
     const catalogos = CATALOG_PROCESS_MENU_TREE[1].children![1];
-    const actividades = catalogos.children![0];
-    const indicadores = catalogos.children![1];
-    const productos = catalogos.children![2];
-    const seleccionados: string[] = [];
-    component.nodeSelected.subscribe(node => seleccionados.push(node.id));
 
-    [actividades, indicadores, productos].forEach(node => component.activate(node));
-
-    expect([actividades, indicadores, productos].every(node => component.canExpand(node))).toBeTrue();
-    expect(seleccionados).toEqual([]);
+    expect(catalogos.children!.map(node => node.label)).toEqual(['Catálogo de versiones de presupuesto']);
   });
 
   it('emite la ruta existente al seleccionar Configuración de versiones', () => {
     const component = fixture.componentInstance;
     const selected: string[] = [];
     component.nodeSelected.subscribe(node => selected.push(node.moduleRoute ?? ''));
-    const configuracion = CATALOG_PROCESS_MENU_TREE[1].children![1].children![3].children![0];
+    const configuracion = CATALOG_PROCESS_MENU_TREE[1].children![1].children![0].children![0];
 
     component.activate(configuracion);
 
