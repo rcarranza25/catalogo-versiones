@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Title } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 
 import { BreadcrumbComponent } from '../../../shared/components/breadcrumb/breadcrumb.component';
@@ -14,7 +15,7 @@ import { RadioComponent } from '../../../shared/ui/radio/radio.component';
 import { SummaryCardComponent, SummaryCardField } from '../../../shared/ui/summary-card/summary-card.component';
 import { TextAreaControlComponent } from '../../../shared/ui/text-area-control/text-area-control.component';
 import { TextFieldComponent } from '../../../shared/ui/text-field/text-field.component';
-import { ANIO_DEMO, descripcionDemoVersion, nombreDemoVersion, sincronizarNombresDemo } from './catalogo-versiones-demo.data';
+import { ANIO_DEMO, fechaOperacionActual } from './catalogo-versiones-demo.data';
 
 type ProcesoDemo = { id: string; codigo: string; nombre: string };
 type VersionVinculadaDemo = { id: string; anio: string; proceso: string; codigo: string; nombre: string };
@@ -72,8 +73,8 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
                 <empty-section title="Proceso" message="No se ha seleccionado ningún proceso. Haga clic en el botón para realizar una selección." (actionClicked)="abrirSelectorProceso()" />
               }
               <div class="grid gap-siaf-lg md:grid-cols-3">
-                <siaf-input class="md:col-span-1" label="Código" [required]="true" [autoSuccess]="false" [disabled]="esEdicion" [error]="errorCodigo()" [value]="codigo()" (valueChange)="cambiarCodigo($any($event))" (blurred)="validarCodigoAlSalir()" />
-                <siaf-input class="md:col-span-2" label="Nombre" [required]="true" [autoSuccess]="false" [disabled]="!procesoSeleccionado()" [error]="errorNombre()" [value]="nombre()" (click)="completarDatosVersion()" (valueChange)="cambiarNombre($any($event))" />
+                <siaf-input class="md:col-span-1" label="Código" [required]="true" [autoSuccess]="false" [disabled]="esEdicion || !procesoSeleccionado()" [error]="errorCodigo()" [value]="codigo()" (valueChange)="cambiarCodigo($any($event))" (blurred)="validarCodigoAlSalir()" />
+                <siaf-input class="md:col-span-2" label="Nombre" [required]="true" [autoSuccess]="false" [disabled]="!procesoSeleccionado()" [error]="errorNombre()" [value]="nombre()" (valueChange)="cambiarNombre($any($event))" />
               </div>
               <text-area-control placeholder="Descripción" [required]="true" [autoSuccess]="false" [disabled]="!procesoSeleccionado()" [error]="errorDescripcion()" [maxlength]="500" [value]="descripcion()" (valueChange)="cambiarDescripcion($event)" />
             </section>
@@ -195,6 +196,7 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
 })
 export class CatalogoVersionesRegistroComponent {
   private readonly router = inject(Router);
+  private readonly title = inject(Title);
   private readonly registroEdicion = history.state?.['registroVersion'] as RegistroVersionState | undefined;
   readonly esEdicion = Boolean(history.state?.['edicionVersion'] && this.registroEdicion);
   readonly versionCincoActualizada = Boolean(history.state?.['versionCincoActualizada']);
@@ -207,7 +209,18 @@ export class CatalogoVersionesRegistroComponent {
   readonly versionSeisDisponible = Boolean(history.state?.['versionSeisDisponible']);
   readonly nuevoProcesoExistente = Boolean(history.state?.['nuevoProcesoExistente']);
 
-  readonly breadcrumbs = [{ label: 'Inicio', href: '/panel' }, { label: 'Procesos presupuesto' }, { label: 'Clasificadores y catálogos' }, { label: 'Catálogo de versiones', href: '/procesos/catalogo-versiones' }, { label: 'Configuración de versiones' }];
+  constructor() {
+    this.title.setTitle('Catálogo de Versiones · SIAF-RP');
+  }
+
+  readonly breadcrumbs = [
+    { label: 'Inicio', href: '/panel' },
+    { label: 'Procesos presupuesto' },
+    { label: 'Clasificadores y catálogos' },
+    { label: 'Catálogo de versiones', href: '/procesos/catalogo-versiones' },
+    { label: 'Configuración de versiones', href: '/procesos/catalogo-versiones' },
+    { label: this.esEdicion ? 'Editar registro de versión' : 'Agregar registro de versión' },
+  ];
   readonly estados = [{ label: 'Activo', value: 'activo' }, { label: 'Inactivo', value: 'inactivo' }];
   readonly procesos: ProcesoDemo[] = [
     { id: 'pmp', codigo: 'M02.1.9', nombre: 'Programación Multianual Presupuestaria' },
@@ -387,19 +400,6 @@ export class CatalogoVersionesRegistroComponent {
     this.mensajeValidacion.set(mensaje);
   }
 
-  completarDatosVersion(): void {
-    if (this.esEdicion) return;
-    const proceso = this.procesoSeleccionado();
-    if (!proceso) return;
-    const procesoActual = `${proceso.codigo} ${proceso.nombre}`;
-    if (!this.nombre().trim()) {
-      this.nombre.set(nombreDemoVersion(this.anio(), procesoActual, this.codigo()) ?? proceso.nombre);
-    }
-    if (!this.descripcion().trim()) {
-      this.descripcion.set(descripcionDemoVersion(this.anio(), procesoActual, this.codigo()) ?? proceso.nombre);
-    }
-  }
-
   grabar(): void {
     if (this.grabando()) return;
     this.intentoGrabacion.set(true);
@@ -472,11 +472,16 @@ export class CatalogoVersionesRegistroComponent {
   private cargarRegistrosGrabados(): RegistroVersionState[] {
     try {
       const registros = JSON.parse(sessionStorage.getItem(SESSION_STORAGE_KEY) ?? '[]');
-      const normalizados = Array.isArray(registros) ? sincronizarNombresDemo((registros as RegistroVersionState[]).map(registro => ({
-        ...registro,
-        ...(registro.anio === '2026' ? { anio: ANIO_DEMO } : {}),
-        ...(registro.vinculada ? { vinculada: { ...registro.vinculada, ...(registro.vinculada.anio === '2026' ? { anio: ANIO_DEMO } : {}) } } : {}),
-      }))) : [];
+      const normalizados = Array.isArray(registros) ? (registros as RegistroVersionState[]).map(registro => {
+        return {
+          ...registro,
+          ...(registro.anio === '2026' ? { anio: ANIO_DEMO } : {}),
+          desde: this.normalizarFechaDeVigencia(registro.desde),
+          hasta: this.normalizarFechaDeVigencia(registro.hasta),
+          auditadoEn: registro.auditadoEn.replace('/2027', '/2026'),
+          ...(registro.vinculada ? { vinculada: { ...registro.vinculada, ...(registro.vinculada.anio === '2026' ? { anio: ANIO_DEMO } : {}) } } : {}),
+        };
+      }) : [];
       if (normalizados.length) sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(normalizados));
       return normalizados;
     } catch {
@@ -540,6 +545,10 @@ export class CatalogoVersionesRegistroComponent {
     if (this.descripcion().length > 500) return 'La descripción no puede exceder los 500 caracteres.';
     if (!this.esAnioValido()) return 'El año debe ser un valor numérico de cuatro dígitos.';
     if (!this.esCodigoValido()) return 'El código debe ser un valor numérico mayor que cero.';
+    if (this.esEdicion && this.registroEdicion?.estado === 'Activo' && this.estado() === 'inactivo'
+      && this.esFechaAnterior(fechaOperacionActual(), this.registroEdicion.desde)) {
+      return 'La Fecha hasta no puede ser anterior a la Fecha desde.';
+    }
 
     const proceso = this.procesoActual(); const idActual = this.registroEdicion?.id;
     const comparables = this.registrosGrabados().filter(registro => registro.id !== idActual && registro.anio.trim() === this.anio().trim() && registro.proceso === proceso);
@@ -616,17 +625,21 @@ export class CatalogoVersionesRegistroComponent {
     ) ?? null;
   }
 
-  private fechaParaVista(fecha: string): string {
-    const [anio, mes, dia] = fecha.split('-');
-    return anio && mes && dia ? `${dia}/${mes}/${anio}` : fecha;
-  }
-
   /** La fecha de vigencia nace al grabar, no durante la captura de una alta. */
   private fechaRegistro(): string {
-    if (this.esEdicion) return this.fechaParaVista(this.fechaDesde());
-    return this.procesoSeleccionado()?.codigo === 'M02.1.9.2' && this.codigo().trim() === '1'
-      ? '25/09/2027'
-      : '20/08/2027';
+    return fechaOperacionActual();
+  }
+
+  private esFechaAnterior(fecha: string, referencia: string): boolean {
+    const aNumero = (valor: string) => {
+      const [dia, mes, anio] = valor.split('/').map(Number);
+      return new Date(anio, mes - 1, dia).getTime();
+    };
+    return aNumero(fecha) < aNumero(referencia);
+  }
+
+  private normalizarFechaDeVigencia(fecha: string): string {
+    return fecha.replace(/\/2027$/, '/2026');
   }
 
   private fechaParaInput(fecha: string | undefined): string | null {

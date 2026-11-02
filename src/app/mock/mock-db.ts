@@ -7,7 +7,7 @@ import {
   CuentaBancariaRegistro,
   NOMBRE_DOCUMENTO,
 } from '../modules/tesoreria/cuentas-bancarias/models/cuenta-bancaria.model';
-import { USUARIOS_DEMO, UsuarioDemo } from './usuarios-demo';
+import { ACTOR_APROBADOR_HISTORIAL, USUARIOS_DEMO, UsuarioDemo } from './usuarios-demo';
 
 /**
  * «Base de datos» del backend simulado: vive en el `localStorage` del navegador, así lo que hace un usuario lo ve
@@ -97,7 +97,7 @@ export function filaHistorial(
 
 // ─── Datos iniciales ───────────────────────────────────────────────
 
-const ROL_CREADOR = { codigo: 'CREADOR', nombre: 'Creador' };
+const ROL_CONFIGURADOR = { codigo: 'CREADOR', nombre: 'Configurador' };
 const ROL_APROBADOR = { codigo: 'APROBADOR', nombre: 'Aprobador' };
 
 interface Semilla {
@@ -155,7 +155,7 @@ function crearDatosIniciales(): DatosTaller {
     secuencia: 0,
   };
   const ana = USUARIOS_DEMO[0];
-  const luis = USUARIOS_DEMO[1];
+  const luis = ACTOR_APROBADOR_HISTORIAL;
 
   for (const semilla of SEMILLAS) {
     const id = nuevoId(datos, 'sol');
@@ -163,11 +163,11 @@ function crearDatosIniciales(): DatosTaller {
     const creada = enFecha(semilla.creada, 9);
     const numero = numeroDocumento(datos.correlativoDocumento, new Date(creada));
     const historial: HistorialItem[] = [
-      filaHistorial(datos, null, 'NUEVO', creada, ana, ROL_CREADOR),
-      filaHistorial(datos, 'NUEVO', 'ELABORADO', enFecha(semilla.creada, 9, 0), ana, ROL_CREADOR),
+      filaHistorial(datos, null, 'NUEVO', creada, ana, ROL_CONFIGURADOR),
+      filaHistorial(datos, 'NUEVO', 'ELABORADO', enFecha(semilla.creada, 9, 0), ana, ROL_CONFIGURADOR),
     ];
     if (semilla.estado !== 'ELABORADO') {
-      historial.push(filaHistorial(datos, 'ELABORADO', 'VERIFICADO', enFecha(semilla.creada, 10, 1), ana, ROL_CREADOR));
+      historial.push(filaHistorial(datos, 'ELABORADO', 'VERIFICADO', enFecha(semilla.creada, 10, 1), ana, ROL_CONFIGURADOR));
     }
     if (['APROBADO', 'OBSERVADO', 'RECHAZADO'].includes(semilla.estado)) {
       historial.push(filaHistorial(datos, 'VERIFICADO', semilla.estado, enFecha(semilla.creada, 11, 2), luis, ROL_APROBADOR, semilla.comentario ?? null));

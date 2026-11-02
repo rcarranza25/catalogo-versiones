@@ -124,16 +124,6 @@ export const DEFAULT_PROCESS_TREE: ProcessMenuNode[] = [
             childrenPadding: 32,
             children: [
               {
-                id: 'catalogo-versiones-documentos',
-                label: 'Documentos y registros de versiones',
-                comingSoon: true,
-              },
-              {
-                id: 'catalogo-versiones-consultas',
-                label: 'Consultas y reportes de versiones',
-                comingSoon: true,
-              },
-              {
                 id: 'catalogo-versiones-configurador',
                 label: 'Configuración de versiones',
                 // Es la entrada funcional del módulo y muestra la grilla de

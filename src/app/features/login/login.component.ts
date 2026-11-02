@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { Title } from '@angular/platform-browser';
 import { Router, RouterLink } from '@angular/router';
 
 import { AlertComponent } from '../../shared/ui/alert/alert.component';
@@ -134,7 +135,7 @@ type LoginTab = 'entidades' | 'proveedores';
                 [selectedId]="usuarioElegido()"
                 (selectedIdChange)="elegirUsuario($event)"
               />
-              <message-box [text]="'Elija un usuario para llenar el DNI. La contraseña de todos es ' + contrasenaDemo + '.'" />
+              <message-box [text]="'Seleccione la usuaria de demostración para completar el DNI. Contraseña: ' + contrasenaDemo" />
               @if (datosReiniciados()) {
                 <siaf-alert
                   tone="success"
@@ -222,7 +223,12 @@ type LoginTab = 'entidades' | 'proveedores';
 })
 export class LoginComponent {
   private readonly router = inject(Router);
+  private readonly title = inject(Title);
   readonly authService = inject(AuthService);
+
+  constructor() {
+    this.title.setTitle('Catálogo de Versiones · SIAF-RP');
+  }
 
   readonly usuario = signal('');
   readonly contrasena = signal('');

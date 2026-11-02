@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Title } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 
 import { BreadcrumbComponent } from '../../../shared/components/breadcrumb/breadcrumb.component';
@@ -19,7 +20,7 @@ import { TextFieldComponent } from '../../../shared/ui/text-field/text-field.com
 import { TooltipDirective } from '../../../shared/ui/tooltip/tooltip.directive';
 import { ColumnVisibilityPanelComponent, ColumnVisibilityPanelSection } from '../../../shared/ui/column-visibility-panel/column-visibility-panel.component';
 import type { DocumentsRecordsColumn } from '../../../shared/types/documents-records.types';
-import { ANIO_DEMO, descripcionDemoVersion, nombreDemoVersion, PROCESO_ASIGNACION, PROCESO_PROGRAMACION_UE, sincronizarNombresDemo } from './catalogo-versiones-demo.data';
+import { ANIO_DEMO, fechaOperacionActual, nombreDemoVersion, PROCESO_ASIGNACION, PROCESO_PROGRAMACION_UE } from './catalogo-versiones-demo.data';
 
 type VersionRow = { id: number; anio: string; proceso: string; codigo: string; nombre: string; descripcion: string; editable: boolean; pliego: boolean; vigente: boolean; oficial: boolean; definitiva: boolean; disponible: boolean; estado: string; desde: string; hasta: string; auditadoEn: string; vinculada?: { anio: string; proceso: string; codigo: string; nombre: string; }; };
 type VersionDocumentRow = { id: number; documento: string; numero: string; tipoAccion: string; estado: string; sistema: string; fecha: string; entidad: string; };
@@ -30,10 +31,10 @@ const CONDITION_KEYS: ConditionKey[] = ['editable', 'pliego', 'vigente', 'oficia
 
 /** Estado deliberadamente mínimo para iniciar una demostración nueva. */
 const BASE_VERSION_ROWS: VersionRow[] = [
-  { id: 1, anio: ANIO_DEMO, proceso: PROCESO_ASIGNACION, codigo: '1', nombre: nombreDemoVersion(ANIO_DEMO, PROCESO_ASIGNACION, '1')!, descripcion: 'Versión inicial del proceso.', editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '05/07/2027', hasta: '-', auditadoEn: '05/07/2027 08:00' },
-  { id: 2, anio: ANIO_DEMO, proceso: PROCESO_ASIGNACION, codigo: '2', nombre: nombreDemoVersion(ANIO_DEMO, PROCESO_ASIGNACION, '2')!, descripcion: 'Borrador para revisión.', editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '05/07/2027', hasta: '-', auditadoEn: '05/07/2027 09:00' },
-  { id: 3, anio: ANIO_DEMO, proceso: PROCESO_ASIGNACION, codigo: '3', nombre: nombreDemoVersion(ANIO_DEMO, PROCESO_ASIGNACION, '3')!, descripcion: 'Versión conciliada.', editable: false, pliego: true, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '15/07/2027', hasta: '-', auditadoEn: '15/07/2027 10:00' },
-  { id: 4, anio: ANIO_DEMO, proceso: PROCESO_ASIGNACION, codigo: '4', nombre: nombreDemoVersion(ANIO_DEMO, PROCESO_ASIGNACION, '4')!, descripcion: 'Versión aprobada.', editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '20/08/2027', hasta: '-', auditadoEn: '20/08/2027 11:00' },
+  { id: 1, anio: ANIO_DEMO, proceso: PROCESO_ASIGNACION, codigo: '1', nombre: nombreDemoVersion(ANIO_DEMO, PROCESO_ASIGNACION, '1')!, descripcion: 'Versión inicial del proceso.', editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '05/07/2026', hasta: '-', auditadoEn: '05/07/2026 08:00' },
+  { id: 2, anio: ANIO_DEMO, proceso: PROCESO_ASIGNACION, codigo: '2', nombre: nombreDemoVersion(ANIO_DEMO, PROCESO_ASIGNACION, '2')!, descripcion: 'Borrador para revisión.', editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '05/07/2026', hasta: '-', auditadoEn: '05/07/2026 09:00' },
+  { id: 3, anio: ANIO_DEMO, proceso: PROCESO_ASIGNACION, codigo: '3', nombre: nombreDemoVersion(ANIO_DEMO, PROCESO_ASIGNACION, '3')!, descripcion: 'Versión conciliada.', editable: false, pliego: true, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '15/07/2026', hasta: '-', auditadoEn: '15/07/2026 10:00' },
+  { id: 4, anio: ANIO_DEMO, proceso: PROCESO_ASIGNACION, codigo: '4', nombre: nombreDemoVersion(ANIO_DEMO, PROCESO_ASIGNACION, '4')!, descripcion: 'Versión aprobada.', editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false, estado: 'Activo', desde: '20/08/2026', hasta: '-', auditadoEn: '20/08/2026 11:00' },
 ];
 const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
 const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.catalogo-versiones.rows'];
@@ -378,6 +379,13 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
         (canceled)="cerrarConfirmacionGrabacionCondiciones()"
         (closed)="cerrarConfirmacionGrabacionCondiciones()"
       />
+      @if (snackbarVisible()) {
+        <div
+          class="fixed inset-0 z-40"
+          aria-hidden="true"
+          (click)="cerrarSnackbarPorClicExterno($event)"
+        ></div>
+      }
       <div class="fixed bottom-siaf-lg left-1/2 z-50 w-[calc(100%-32px)] max-w-[430px] -translate-x-1/2">
         <siaf-snackbar
           [open]="snackbarVisible()"
@@ -537,6 +545,7 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
 })
 export class CatalogoVersionesBandejaComponent {
   private readonly router = inject(Router);
+  private readonly title = inject(Title);
   // La bandeja inicia mostrando solo las versiones activas. «Todos» expone
   // también las bajas lógicas sin perder sus fechas ni demás datos.
   readonly search = signal(''); readonly estado = signal('Activo'); readonly anio = signal(ANIO_DEMO); readonly snackbarVisible = signal(false); readonly selectedIds = signal<Set<number>>(new Set());
@@ -553,12 +562,6 @@ export class CatalogoVersionesBandejaComponent {
   readonly editingId = signal<number | null>(null);
   readonly draft = signal<VersionRow | null>(null);
   readonly filaNueva = signal<VersionRow | null>(null);
-  readonly nombreAutocompletado = signal(false);
-  readonly descripcionAutocompletada = signal(false);
-  readonly procesoNombreAutocompletado = signal<string | null>(null);
-  readonly procesoDescripcionAutocompletada = signal<string | null>(null);
-  readonly nombreEditadoManualmente = signal(false);
-  readonly descripcionEditadaManualmente = signal(false);
   readonly confirmacionGrabacionAbierta = signal(false);
   readonly confirmacionReinicioDemoAbierta = signal(false);
   readonly confirmacionCancelacionFilaAbierta = signal(false);
@@ -581,7 +584,13 @@ export class CatalogoVersionesBandejaComponent {
   readonly anioFiltro = signal(ANIO_DEMO); readonly procesoFiltro = signal(''); readonly codigoFiltro = signal(''); readonly nombreFiltro = signal(''); readonly estadoFiltro = signal('Activo'); readonly editableFiltro = signal(''); readonly pliegoFiltro = signal(''); readonly vigenteFiltro = signal(''); readonly oficialFiltro = signal(''); readonly definitivaFiltro = signal(''); readonly disponibleFiltro = signal('');
   readonly mensajeSnackbar = signal('');
   readonly tituloConfirmacionCancelacionFila = computed(() => this.editingId() !== null && this.esFilaNueva(this.editingId()!) ? '¿Está seguro(a) de cancelar el registro?' : '¿Está seguro(a) de cancelar la edición?');
-  readonly breadcrumbs = [{ label: 'Inicio', href: '/panel' }, { label: 'Procesos presupuesto' }, { label: 'Clasificadores y catálogos' }, { label: 'Catálogo de versiones' }];
+  readonly breadcrumbs = [
+    { label: 'Inicio', href: '/panel' },
+    { label: 'Procesos presupuesto' },
+    { label: 'Clasificadores y catálogos' },
+    { label: 'Catálogo de versiones', href: '/procesos/catalogo-versiones' },
+    { label: 'Configuración de versiones' },
+  ];
   /** Esta pantalla representa el listado de registros; no crea documentos desde el catálogo. */
   readonly tabsItems: RecordsTabItem[] = [{ id: 'documents', label: 'Documentos' }, { id: 'records', label: 'Registros' }];
   readonly optionsMenu = [{ label: 'Columnas visibles', value: 'columns', divider: true }, { label: 'Reiniciar demo', value: 'reset-demo', icon: 'restart_alt' }];
@@ -623,6 +632,7 @@ export class CatalogoVersionesBandejaComponent {
   readonly opcionesCondicion = [{ label: 'Todos', value: '' }, { label: 'Sí', value: 'true' }, { label: 'No', value: 'false' }];
   readonly rows = signal<VersionRow[]>(structuredClone(BASE_VERSION_ROWS));
   constructor() {
+    this.title.setTitle('Catálogo de Versiones · SIAF-RP');
     try {
       const filasSesion = this.leerFilasPersistidas();
       if (Array.isArray(filasSesion) && filasSesion.length >= BASE_VERSION_ROWS.length) {
@@ -760,11 +770,24 @@ export class CatalogoVersionesBandejaComponent {
     if (opcion === 'reset-demo') this.confirmacionReinicioDemoAbierta.set(true);
   }
   cerrarConfirmacionReinicioDemo(): void { this.confirmacionReinicioDemoAbierta.set(false); }
+  cerrarSnackbarPorClicExterno(event: MouseEvent): void {
+    // La capa transparente recibe el primer clic fuera del aviso, por lo que
+    // ese gesto sólo lo cierra y nunca alcanza el control que queda debajo.
+    event.preventDefault();
+    event.stopPropagation();
+    this.snackbarVisible.set(false);
+  }
   confirmarReinicioDemo(): void {
     const base = structuredClone(BASE_VERSION_ROWS);
     this.rows.set(base); this.persistirRows(base);
+    // Las claves antiguas también deben quedar reemplazadas: si la sesión se
+    // recarga, no pueden revivir filas añadidas ni una inactivación previa.
+    if (typeof localStorage !== 'undefined') {
+      for (const key of MIGRATABLE_LOCAL_STORAGE_KEYS) localStorage.setItem(key, JSON.stringify(structuredClone(base)));
+    }
     this.filaNueva.set(null); this.draft.set(null); this.editingId.set(null); this.selectedIds.set(new Set());
-    this.reiniciarAutocompletado(); this.editError.set(''); this.search.set(''); this.anio.set(ANIO_DEMO); this.estado.set('Activo');
+    this.limpiarFiltros();
+    this.editError.set(''); this.search.set(''); this.anio.set(ANIO_DEMO); this.estado.set('Activo');
     // El reinicio también recupera la vista inicial de la grilla: sin Descripción
     // ni el bloque completo de Versión vinculada.
     this.columnasBorrador.set(new Set(this.columnasIniciales));
@@ -968,35 +991,16 @@ export class CatalogoVersionesBandejaComponent {
       state: { edicionVersion: true, registroVersion: structuredClone(row) }
     });
   }
-  updateDraft(field: 'anio' | 'proceso' | 'codigo' | 'nombre' | 'descripcion' | 'estado', value: string, desdeAutocompletado = false): void {
+  updateDraft(field: 'anio' | 'proceso' | 'codigo' | 'nombre' | 'descripcion' | 'estado', value: string): void {
     const draft = this.draft();
     if (!draft) return;
     const isNew = this.esFilaNueva(draft.id);
     const next = { ...draft, [field]: value } as VersionRow;
-    if (isNew && field === 'proceso' && value !== draft.proceso) this.retirarAutocompletadosDeProcesoAnterior(draft.proceso, next);
     if (isNew && (field === 'anio' || field === 'proceso')) {
       next.codigo = this.siguienteCodigo(next.anio, next.proceso);
     }
-    if (isNew && field === 'nombre' && !desdeAutocompletado) this.nombreEditadoManualmente.set(true);
-    if (isNew && field === 'descripcion' && !desdeAutocompletado) this.descripcionEditadaManualmente.set(true);
     this.draft.set(next);
     this.editError.set(this.mensajeConflictoCondiciones(next) || this.mensajeInactivacionBloqueada(next));
-  }
-  autocompletarNombre(): void {
-    const draft = this.draft();
-    const ejemplo = draft ? this.ejemploDeProceso(draft.proceso, draft.codigo) : undefined;
-    if (!draft || !ejemplo || !this.esFilaNueva(draft.id) || this.nombreAutocompletado() || draft.nombre.trim()) return;
-    this.nombreAutocompletado.set(true);
-    this.procesoNombreAutocompletado.set(draft.proceso);
-    this.updateDraft('nombre', ejemplo.nombre, true);
-  }
-  autocompletarDescripcion(): void {
-    const draft = this.draft();
-    const ejemplo = draft ? this.ejemploDeProceso(draft.proceso, draft.codigo) : undefined;
-    if (!draft || !ejemplo || !this.esFilaNueva(draft.id) || this.descripcionAutocompletada() || draft.descripcion.trim()) return;
-    this.descripcionAutocompletada.set(true);
-    this.procesoDescripcionAutocompletada.set(draft.proceso);
-    this.updateDraft('descripcion', ejemplo.descripcion, true);
   }
   updateCondition(condition: string, checked: boolean): void {
     const draft = this.draft();
@@ -1020,6 +1024,9 @@ export class CatalogoVersionesBandejaComponent {
     if (draft.descripcion.length > 500) return 'La descripción no puede exceder los 500 caracteres.';
     if (!this.esFilaNueva(id)) {
       const original = this.rows().find(row => row.id === id);
+      if (draft.estado === 'Inactivo' && original?.estado === 'Activo' && this.esFechaAnterior(fechaOperacionActual(), original.desde)) {
+        return 'La Fecha hasta no puede ser anterior a la Fecha desde.';
+      }
       if (original && JSON.stringify(draft) === JSON.stringify(original)) return 'Realice al menos un cambio para grabar.';
     }
     return '';
@@ -1032,7 +1039,7 @@ export class CatalogoVersionesBandejaComponent {
     if (id === null) return;
     if (this.esFilaNueva(id)) this.filaNueva.set(null);
     this.confirmacionCancelacionFilaAbierta.set(false); this.draft.set(null); this.editingId.set(null);
-    this.reiniciarAutocompletado(); this.editError.set(''); this.selectedIds.set(new Set());
+    this.editError.set(''); this.selectedIds.set(new Set());
   }
   solicitarGrabacionEdicion(): void {
     if (!this.puedeGrabarEdicion()) return;
@@ -1049,13 +1056,13 @@ export class CatalogoVersionesBandejaComponent {
       // Una baja lógica conserva la fecha de inicio y registra la fecha local
       // del sistema como cierre solo al cambiar desde Activo. Volver a Activo
       // retira el cierre y editar una baja existente conserva su fecha.
-      hasta: draft.estado === 'Inactivo' ? (original?.estado === 'Inactivo' ? draft.hasta : this.fechaSistema()) : '-',
+      hasta: draft.estado === 'Inactivo' ? (original?.estado === 'Inactivo' ? draft.hasta : fechaOperacionActual()) : '-',
       auditadoEn: new Date().toLocaleString('es-PE')
     };
     const isNew = this.esFilaNueva(saved.id);
     const index = this.rows().findIndex(row => row.id === saved.id);
     this.rows.update(rows => index >= 0 ? rows.map(row => row.id === saved.id ? saved : row) : [...rows, saved]);
-    this.filaNueva.set(null); this.persistirRows(); this.editingId.set(null); this.draft.set(null); this.reiniciarAutocompletado(); this.editError.set(''); this.selectedIds.set(new Set()); this.mensajeSnackbar.set(isNew ? 'Registro agregado con éxito' : 'Registro actualizado con éxito'); this.snackbarVisible.set(true);
+    this.filaNueva.set(null); this.persistirRows(); this.editingId.set(null); this.draft.set(null); this.editError.set(''); this.selectedIds.set(new Set()); this.mensajeSnackbar.set(isNew ? 'Registro agregado con éxito' : 'Registro actualizado con éxito'); this.snackbarVisible.set(true);
   }
   valorSeleccionVinculada(): string {
     const linked = this.draft()?.vinculada;
@@ -1070,36 +1077,6 @@ export class CatalogoVersionesBandejaComponent {
     this.draft.set({ ...draft, vinculada: { anio: version.anio, proceso: version.proceso, codigo: version.codigo, nombre: version.nombre } });
     this.editError.set(this.mensajeConflictoCondiciones(this.draft()!) || this.mensajeInactivacionBloqueada(this.draft()!));
   }
-  private reiniciarAutocompletado(): void {
-    this.nombreAutocompletado.set(false); this.descripcionAutocompletada.set(false);
-    this.procesoNombreAutocompletado.set(null); this.procesoDescripcionAutocompletada.set(null);
-    this.nombreEditadoManualmente.set(false); this.descripcionEditadaManualmente.set(false);
-  }
-  private retirarAutocompletadosDeProcesoAnterior(procesoAnterior: string, next: VersionRow): void {
-    if (this.procesoNombreAutocompletado() === procesoAnterior && !this.nombreEditadoManualmente()) {
-      next.nombre = '';
-      this.nombreAutocompletado.set(false);
-      this.procesoNombreAutocompletado.set(null);
-    }
-    if (this.procesoDescripcionAutocompletada() === procesoAnterior && !this.descripcionEditadaManualmente()) {
-      next.descripcion = '';
-      this.descripcionAutocompletada.set(false);
-      this.procesoDescripcionAutocompletada.set(null);
-    }
-  }
-  private ejemploDeProceso(proceso: string, codigo: string): { nombre: string; descripcion: string } | undefined {
-    const ejemplos: Record<string, { nombre: string; descripcion: string }> = {
-      [PROCESO_ASIGNACION]: {
-        nombre: nombreDemoVersion(ANIO_DEMO, PROCESO_ASIGNACION, codigo) ?? `Versión de ${PROCESO_ASIGNACION}`,
-        descripcion: `Versión de demostración del proceso ${PROCESO_ASIGNACION} para el año ${ANIO_DEMO}.`
-      },
-      [PROCESO_PROGRAMACION_UE]: {
-        nombre: nombreDemoVersion(ANIO_DEMO, PROCESO_PROGRAMACION_UE, codigo) ?? `Versión de ${PROCESO_PROGRAMACION_UE}`,
-        descripcion: descripcionDemoVersion(ANIO_DEMO, PROCESO_PROGRAMACION_UE, codigo) ?? `Versión de demostración del proceso ${PROCESO_PROGRAMACION_UE} para el año ${ANIO_DEMO}.`
-      }
-    };
-    return ejemplos[proceso];
-  }
   private siguienteCodigo(anio: string, proceso: string): string {
     if (!anio.trim() || !proceso) return '';
     const maximo = this.rows().filter(row => row.anio === anio && row.proceso === proceso).reduce((max, row) => Math.max(max, Number.parseInt(row.codigo, 10) || 0), 0);
@@ -1107,11 +1084,22 @@ export class CatalogoVersionesBandejaComponent {
   }
   /** Migra sólo el escenario histórico de esta demostración al año centralizado. */
   private normalizarEscenarioDemo(filas: VersionRow[]): VersionRow[] {
-    return sincronizarNombresDemo(filas.map(fila => ({
-      ...fila,
-      ...(fila.anio === '2026' ? { anio: ANIO_DEMO } : {}),
-      ...(fila.vinculada ? { vinculada: { ...fila.vinculada, ...(fila.vinculada.anio === '2026' ? { anio: ANIO_DEMO } : {}) } } : {}),
-    })));
+    return filas.map(fila => {
+      return {
+        ...fila,
+        // El Año identifica el ejercicio fiscal 2027; las vigencias son
+        // operaciones realizadas durante 2026. Esta migración alcanza la
+        // sesión ya abierta sin quitar altas ni preferencias del usuario.
+        ...(fila.anio === '2026' ? { anio: ANIO_DEMO } : {}),
+        desde: this.normalizarFechaDeVigencia(fila.desde),
+        hasta: this.normalizarFechaDeVigencia(fila.hasta),
+        auditadoEn: fila.auditadoEn.replace('/2027', '/2026'),
+        ...(fila.vinculada ? { vinculada: { ...fila.vinculada, ...(fila.vinculada.anio === '2026' ? { anio: ANIO_DEMO } : {}) } } : {}),
+      };
+    });
+  }
+  private normalizarFechaDeVigencia(fecha: string): string {
+    return fecha.replace(/\/2027$/, '/2026');
   }
   private mensajeConflictoCondiciones(row: VersionRow): string {
     for (const [condicion, etiqueta] of [['oficial', 'Oficial'], ['definitiva', 'Definitiva'], ['disponible', 'Disponible'], ['vigente', 'Vigente']] as const) {
@@ -1135,7 +1123,13 @@ export class CatalogoVersionesBandejaComponent {
       ? `No se puede inactivar la versión porque está vinculada a la versión activa ${identificaciones[0]}.`
       : `No se puede inactivar la versión porque está vinculada a las versiones activas ${identificaciones.join(', ')}.`;
   }
-  private fechaSistema(): string { return new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date()); }
+  private esFechaAnterior(fecha: string, referencia: string): boolean {
+    const aNumero = (valor: string) => {
+      const [dia, mes, anio] = valor.split('/').map(Number);
+      return new Date(anio, mes - 1, dia).getTime();
+    };
+    return aNumero(fecha) < aNumero(referencia);
+  }
   private esMismaVersionVinculada(row: VersionRow, linked: NonNullable<VersionRow['vinculada']>): boolean {
     return row.anio === linked.anio && row.proceso === linked.proceso && row.codigo === linked.codigo;
   }
