@@ -9,9 +9,6 @@ export type CurrentUser = {
   displayName?: string;
   /** Iniciales de la identidad visual de la sesión. */
   initials?: string;
-  /** Visibilidad de catálogo resuelta desde la identidad autenticada del demo. */
-  catalogoProcesos?: 'versiones' | 'archivos-apm';
-
   // ── Identificadores ricos (modelo refactor v2) ──
   /** Id (uuid) de la entidad/pliego — para acotar consultas por ámbito propio. */
   entidadId?: string | null;

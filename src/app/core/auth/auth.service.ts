@@ -188,7 +188,6 @@ export class AuthService {
       office: buildOfficeLabel(p),
       displayName,
       initials,
-      catalogoProcesos: usuarioDemo?.catalogoProcesos,
       entidadId: p.entidadId ?? null,
       entidadSiglas: p.entidadSiglas ?? null,
       entidadCodigo: p.entidadCodigo ?? null,

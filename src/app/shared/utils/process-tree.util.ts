@@ -132,14 +132,6 @@ export const DEFAULT_PROCESS_TREE: ProcessMenuNode[] = [
               },
             ],
           },
-          {
-            id: 'catalogo-archivos-apm',
-            label: 'Catálogo de archivos de la APM',
-            comingSoon: true,
-            children: [
-              { id: 'catalogo-archivos-apm-documentos', label: 'Documentos y registros de archivos', comingSoon: true },
-            ],
-          },
         ],
       },
     ],
@@ -179,11 +171,6 @@ export const CATALOG_PROCESS_MENU_TREE: ProcessMenuNode[] = [
             id: 'catalogo-versiones',
             label: 'Catálogo de Versiones de Presupuesto',
             moduleRoute: '/procesos/catalogo-versiones',
-          },
-          {
-            id: 'catalogo-archivos-apm',
-            label: 'Catálogo de archivos de la APM',
-            moduleRoute: '/procesos/catalogo-archivos-apm',
           },
         ],
       },

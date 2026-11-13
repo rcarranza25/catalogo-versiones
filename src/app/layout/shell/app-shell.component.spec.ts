@@ -1,20 +1,7 @@
-import { AppShellComponent } from './app-shell.component';
-import { ProcessMenuNode } from '../process-menu-tree/process-menu-tree.component';
+import { CATALOG_PROCESS_MENU_TREE } from '../../shared/utils/process-tree.util';
 
-describe('AppShellComponent process catalog visibility', () => {
-  const filtrarCatalogos = (catalogo: 'versiones' | 'archivos-apm'): ProcessMenuNode[] =>
-    (AppShellComponent.prototype as unknown as {
-      filtrarCatalogosDeProcesos: (visible: 'versiones' | 'archivos-apm') => ProcessMenuNode[];
-    }).filtrarCatalogosDeProcesos(catalogo);
-
-  const hojasCatalogo = (catalogo: 'versiones' | 'archivos-apm') =>
-    filtrarCatalogos(catalogo)[1].children![1].children!;
-
-  it('muestra solo Versiones para la sesión de Carlos', () => {
-    expect(hojasCatalogo('versiones').map(nodo => nodo.moduleRoute)).toEqual(['/procesos/catalogo-versiones']);
-  });
-
-  it('muestra solo Archivos APM para la sesión de Ana', () => {
-    expect(hojasCatalogo('archivos-apm').map(nodo => nodo.moduleRoute)).toEqual(['/procesos/catalogo-archivos-apm']);
+describe('Proceso del catálogo de Versiones', () => {
+  it('mantiene disponible la ruta de Versiones', () => {
+    expect(CATALOG_PROCESS_MENU_TREE[1].children![1].children!.map(nodo => nodo.moduleRoute)).toEqual(['/procesos/catalogo-versiones']);
   });
 });

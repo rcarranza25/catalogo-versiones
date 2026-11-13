@@ -13,48 +13,43 @@ describe('ProcessMenuTreeComponent', () => {
     fixture.detectChanges();
   });
 
-  it('muestra los antecesores al buscar Catálogo de archivos de la APM', () => {
+  it('muestra los antecesores al buscar Catálogo de Versiones de Presupuesto', () => {
     const component = fixture.componentInstance;
-    component.onQuery('Catálogo de archivos de la APM');
+    component.onQuery('Catálogo de Versiones de Presupuesto');
 
     const clasificadores = component.filteredNodes[0];
     const catalogos = clasificadores.children![0];
-    const archivos = catalogos.children![0];
+    const versiones = catalogos.children![0];
 
     expect(clasificadores.label).toBe('Clasificadores y catálogos');
     expect(catalogos.label).toBe('Catálogos');
-    expect(archivos.label).toBe('Catálogo de archivos de la APM');
+    expect(versiones.label).toBe('Catálogo de Versiones de Presupuesto');
   });
 
   it('inicia con Clasificadores y catálogos abierto y los siguientes grupos contraídos', () => {
     const component = fixture.componentInstance;
     const clasificadores = CATALOG_PROCESS_MENU_TREE[1];
     const catalogos = clasificadores.children![1];
-    const archivos = catalogos.children![0];
+    const versiones = catalogos.children![0];
 
     expect(component.isExpanded(clasificadores)).toBeTrue();
     expect(component.isExpanded(catalogos)).toBeFalse();
-    expect(component.isExpanded(archivos)).toBeFalse();
+    expect(component.isExpanded(versiones)).toBeFalse();
   });
 
-  it('muestra los catálogos de Versiones y Archivos APM dentro de Catálogos', () => {
+  it('muestra únicamente Versiones dentro de Catálogos', () => {
     const catalogos = CATALOG_PROCESS_MENU_TREE[1].children![1];
 
-    expect(catalogos.children!.map(node => node.label)).toEqual([
-      'Catálogo de Versiones de Presupuesto',
-      'Catálogo de archivos de la APM',
-    ]);
+    expect(catalogos.children!.map(node => node.label)).toEqual(['Catálogo de Versiones de Presupuesto']);
   });
 
-  it('emite la ruta del catálogo al seleccionar Archivos de la APM', () => {
+  it('emite la ruta del catálogo al seleccionar Versiones', () => {
     const component = fixture.componentInstance;
     const selected: string[] = [];
     component.nodeSelected.subscribe(node => selected.push(node.moduleRoute ?? ''));
-    const [versiones, archivos] = CATALOG_PROCESS_MENU_TREE[1].children![1].children!;
-
+    const [versiones] = CATALOG_PROCESS_MENU_TREE[1].children![1].children!;
     component.activate(versiones);
-    component.activate(archivos);
 
-    expect(selected).toEqual(['/procesos/catalogo-versiones', '/procesos/catalogo-archivos-apm']);
+    expect(selected).toEqual(['/procesos/catalogo-versiones']);
   });
 });

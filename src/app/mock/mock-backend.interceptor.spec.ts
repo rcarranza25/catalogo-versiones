@@ -75,19 +75,19 @@ describe('mockBackendInterceptor', () => {
     expect(error?.status).toBe(401);
   }));
 
-  it('habilita únicamente a Ana como Configurador', fakeAsync(() => {
-    const { valor } = esperar(http.post<LoginResponse>(`${API}/auth/login`, { dni: '11111111', password: CONTRASENA_DEMO }));
+  it('habilita únicamente a Carlos como Configurador', fakeAsync(() => {
+    const { valor } = esperar(http.post<LoginResponse>(`${API}/auth/login`, { dni: '22222222', password: CONTRASENA_DEMO }));
     expect(valor?.perfilesDisponibles.map((p) => p.rolCodigo)).toEqual(['CREADOR']);
     expect(valor?.perfilActivo.rol).toBe('Configurador');
 
-    for (const dni of ['22222222', '33333333']) {
+    for (const dni of ['11111111', '33333333']) {
       const { error } = esperar(http.post(`${API}/auth/login`, { dni, password: CONTRASENA_DEMO }));
       expect(error?.status).toBe(401);
     }
   }));
 
   it('la bandeja no muestra solicitudes en NUEVO y pagina si se pide', fakeAsync(() => {
-    const headers = entrar('11111111');
+    const headers = entrar('22222222');
     esperar(http.post(`${API}/solicitudes`, { tipoAccion: 'creacion', organoLinea: 'OGA', justificacion: 'Borrador' }, { headers }));
 
     const { valor } = esperar(http.get<{ data: SolicitudResponse[]; total: number }>(`${API}/solicitudes/bandeja-creador?tipos=SRCB&page=1&limit=5`, { headers }));
@@ -97,23 +97,23 @@ describe('mockBackendInterceptor', () => {
   }));
 
   it('el configurador puede elaborar y verificar una solicitud', fakeAsync(() => {
-    const ana = entrar('11111111');
-    const creada = esperar(http.post<SolicitudResponse>(`${API}/solicitudes`, { tipoAccion: 'creacion', organoLinea: 'OGA', justificacion: 'Cuenta nueva' }, { headers: ana }));
+    const carlos = entrar('22222222');
+    const creada = esperar(http.post<SolicitudResponse>(`${API}/solicitudes`, { tipoAccion: 'creacion', organoLinea: 'OGA', justificacion: 'Cuenta nueva' }, { headers: carlos }));
     const id = creada.valor!.id;
 
     // Sin datos ni sustento no se puede elaborar.
-    expect(esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'ELABORADO' }, { headers: ana })).error?.status).toBe(400);
+    expect(esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'ELABORADO' }, { headers: carlos })).error?.status).toBe(400);
 
-    esperar(http.post(`${API}/solicitudes/${id}/cuenta-bancaria`, CUENTA, { headers: ana }));
-    esperar(http.post(`${API}/solicitudes/${id}/sustentos`, archivo(), { headers: ana }));
-    const elaborada = esperar(http.patch<{ numero: string }>(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'ELABORADO' }, { headers: ana }));
+    esperar(http.post(`${API}/solicitudes/${id}/cuenta-bancaria`, CUENTA, { headers: carlos }));
+    esperar(http.post(`${API}/solicitudes/${id}/sustentos`, archivo(), { headers: carlos }));
+    const elaborada = esperar(http.patch<{ numero: string }>(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'ELABORADO' }, { headers: carlos }));
     expect(elaborada.valor?.numero).toMatch(/^PCB-SRCB-00013-\d{4}-MEF-OGA$/);
 
     // El creador no puede aprobar.
-    expect(esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'APROBADO' }, { headers: ana })).error?.status).toBe(409);
-    esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'VERIFICADO' }, { headers: ana }));
+    expect(esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'APROBADO' }, { headers: carlos })).error?.status).toBe(409);
+    esperar(http.patch(`${API}/solicitudes/${id}/estado`, { estadoNuevo: 'VERIFICADO' }, { headers: carlos }));
 
-    const detalle = esperar(http.get<SolicitudResponse>(`${API}/solicitudes/${id}`, { headers: ana }));
+    const detalle = esperar(http.get<SolicitudResponse>(`${API}/solicitudes/${id}`, { headers: carlos }));
     expect(detalle.valor?.historialEstados?.map((h) => h.estadoNuevo)).toEqual(['NUEVO', 'ELABORADO', 'VERIFICADO']);
   }));
 

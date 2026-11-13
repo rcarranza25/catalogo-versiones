@@ -68,7 +68,7 @@ import { CatalogConditionEditLockService } from '../../core/state/catalog-condit
 
       @if (processMenuOpen) {
         <div class="fixed inset-x-0 bottom-0 top-14 z-20 lg:left-16 lg:right-auto" (click)="$event.stopPropagation()">
-          <siaf-process-menu-tree [nodes]="catalogProcessMenuTree()" (nodeSelected)="onProcessNodeSelected($event)" />
+          <siaf-process-menu-tree [nodes]="catalogProcessMenuTree" (nodeSelected)="onProcessNodeSelected($event)" />
         </div>
       }
 
@@ -160,8 +160,8 @@ export class AppShellComponent implements OnInit {
   private readonly fallbackOptions: CreateDocumentProcessOption[] = [...CREATE_DOCUMENT_OPTIONS];
 
   readonly createDocumentOptions = signal<CreateDocumentProcessOption[]>(this.fallbackOptions);
-  /** Árbol de Procesos filtrado por la identidad autenticada, sin afectar las rutas. */
-  readonly catalogProcessMenuTree = computed(() => this.filtrarCatalogosDeProcesos(this.currentUser.user().catalogoProcesos));
+  /** Árbol de Procesos del catálogo independiente de Versiones. */
+  readonly catalogProcessMenuTree = CATALOG_PROCESS_MENU_TREE;
 
   ngOnInit(): void {
     this.catalogosApi.listarTiposDocumento().subscribe({
@@ -232,23 +232,6 @@ export class AppShellComponent implements OnInit {
       verificacion: 'Verificación',
     };
     return map[accion.toLowerCase()] ?? (accion.charAt(0).toUpperCase() + accion.slice(1));
-  }
-
-  private filtrarCatalogosDeProcesos(catalogoVisible?: 'versiones' | 'archivos-apm'): ProcessMenuNode[] {
-    const rutaVisible = catalogoVisible === 'versiones'
-      ? '/procesos/catalogo-versiones'
-      : catalogoVisible === 'archivos-apm'
-        ? '/procesos/catalogo-archivos-apm'
-        : undefined;
-
-    const copiarNodo = (nodo: ProcessMenuNode): ProcessMenuNode => ({
-      ...nodo,
-      children: nodo.children
-        ?.filter(hijo => nodo.id !== 'catalogos-catalogo' || !rutaVisible || hijo.moduleRoute === rutaVisible)
-        .map(copiarNodo),
-    });
-
-    return CATALOG_PROCESS_MENU_TREE.map(copiarNodo);
   }
 
   constructor() {

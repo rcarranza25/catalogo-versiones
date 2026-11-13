@@ -154,7 +154,7 @@ function crearDatosIniciales(): DatosTaller {
     correlativoRegistro: 0,
     secuencia: 0,
   };
-  const ana = USUARIOS_DEMO[0];
+  const configurador = USUARIOS_DEMO[0];
   const luis = ACTOR_APROBADOR_HISTORIAL;
 
   for (const semilla of SEMILLAS) {
@@ -163,11 +163,11 @@ function crearDatosIniciales(): DatosTaller {
     const creada = enFecha(semilla.creada, 9);
     const numero = numeroDocumento(datos.correlativoDocumento, new Date(creada));
     const historial: HistorialItem[] = [
-      filaHistorial(datos, null, 'NUEVO', creada, ana, ROL_CONFIGURADOR),
-      filaHistorial(datos, 'NUEVO', 'ELABORADO', enFecha(semilla.creada, 9, 0), ana, ROL_CONFIGURADOR),
+      filaHistorial(datos, null, 'NUEVO', creada, configurador, ROL_CONFIGURADOR),
+      filaHistorial(datos, 'NUEVO', 'ELABORADO', enFecha(semilla.creada, 9, 0), configurador, ROL_CONFIGURADOR),
     ];
     if (semilla.estado !== 'ELABORADO') {
-      historial.push(filaHistorial(datos, 'ELABORADO', 'VERIFICADO', enFecha(semilla.creada, 10, 1), ana, ROL_CONFIGURADOR));
+      historial.push(filaHistorial(datos, 'ELABORADO', 'VERIFICADO', enFecha(semilla.creada, 10, 1), configurador, ROL_CONFIGURADOR));
     }
     if (['APROBADO', 'OBSERVADO', 'RECHAZADO'].includes(semilla.estado)) {
       historial.push(filaHistorial(datos, 'VERIFICADO', semilla.estado, enFecha(semilla.creada, 11, 2), luis, ROL_APROBADOR, semilla.comentario ?? null));
@@ -183,7 +183,7 @@ function crearDatosIniciales(): DatosTaller {
       asuntoMotivo: `[OFICINA GENERAL DE ADMINISTRACIÓN] ${semilla.justificacion}`,
       entidadCreadora: ENTIDAD_CREADORA,
       unidadCreadora: UNIDAD_CREADORA,
-      creador: { id: ana.id, nombres: ana.nombres, apellidoPaterno: ana.apellidoPaterno, apellidoMaterno: ana.apellidoMaterno },
+      creador: { id: configurador.id, nombres: configurador.nombres, apellidoPaterno: configurador.apellidoPaterno, apellidoMaterno: configurador.apellidoMaterno },
       fechaRegistro: creada,
       createdAt: creada,
       updatedAt: ultima,
@@ -228,7 +228,7 @@ function crearDatosIniciales(): DatosTaller {
       leidaEn: null,
       createdAt: ultimaAprobada.updatedAt ?? ultimaAprobada.createdAt,
       documento: { id: ultimaAprobada.id, numero: 'Documento-autogenerado-DGPP-0012-MEF', catDocumento: DOCUMENTO_AUTOGENERADO_CATALOGO },
-      paraUsuarioId: ana.id,
+      paraUsuarioId: configurador.id,
     });
   }
 
