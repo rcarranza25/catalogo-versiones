@@ -176,15 +176,14 @@ export const CATALOG_PROCESS_MENU_TREE: ProcessMenuNode[] = [
         label: 'Catálogos',
         children: [
           {
-            id: 'catalogo-versiones-presupuesto',
-            label: 'Catálogo de versiones de presupuesto',
-            children: [
-              {
-                id: 'catalogo-versiones-configurador',
-                label: 'Configuración de versiones',
-                moduleRoute: '/procesos/catalogo-versiones',
-              },
-            ],
+            id: 'catalogo-versiones',
+            label: 'Catálogo de Versiones de Presupuesto',
+            moduleRoute: '/procesos/catalogo-versiones',
+          },
+          {
+            id: 'catalogo-archivos-apm',
+            label: 'Catálogo de archivos de la APM',
+            moduleRoute: '/procesos/catalogo-archivos-apm',
           },
         ],
       },

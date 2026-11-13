@@ -9,6 +9,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 import { RecordsSearchToolbarComponent } from '../../../shared/components/records-search-toolbar/records-search-toolbar.component';
 import { RecordsTabItem } from '../../../shared/components/records-tabs/records-tabs.component';
+import { AlertComponent } from '../../../shared/ui/alert/alert.component';
 import { ButtonComponent } from '../../../shared/ui/button/button.component';
 import { IconComponent } from '../../../shared/ui/icon/icon.component';
 import { IconDropdownMenuComponent } from '../../../shared/ui/icon-dropdown-menu/icon-dropdown-menu.component';
@@ -20,7 +21,7 @@ import { TextFieldComponent } from '../../../shared/ui/text-field/text-field.com
 import { TooltipDirective } from '../../../shared/ui/tooltip/tooltip.directive';
 import { ColumnVisibilityPanelComponent, ColumnVisibilityPanelSection } from '../../../shared/ui/column-visibility-panel/column-visibility-panel.component';
 import type { DocumentsRecordsColumn } from '../../../shared/types/documents-records.types';
-import { ANIO_DEMO, fechaOperacionActual, nombreDemoVersion, PROCESO_ASIGNACION, PROCESO_PROGRAMACION_UE } from './catalogo-versiones-demo.data';
+import { ANIO_DEMO, fechaOperacionActual, nombreDemoVersion, normalizarProcesoDemo, PROCESO_ASIGNACION, PROCESOS_VERSIONES_DEMO } from './catalogo-versiones-demo.data';
 import { CatalogConditionEditLockService } from '../../../core/state/catalog-condition-edit-lock.service';
 
 type VersionRow = { id: number; anio: string; proceso: string; codigo: string; nombre: string; descripcion: string; editable: boolean; pliego: boolean; vigente: boolean; oficial: boolean; definitiva: boolean; disponible: boolean; estado: string; desde: string; hasta: string; auditadoEn: string; vinculada?: { anio: string; proceso: string; codigo: string; nombre: string; }; };
@@ -28,6 +29,7 @@ type VersionDocumentRow = { id: number; documento: string; numero: string; tipoA
 type ConditionKey = 'editable' | 'pliego' | 'vigente' | 'oficial' | 'definitiva' | 'disponible';
 type ConditionDraft = Pick<VersionRow, ConditionKey>;
 type CatalogFilters = { anio: string; proceso: string; codigo: string; nombre: string; estado: string; editable: string; pliego: string; vigente: string; oficial: string; definitiva: string; disponible: string; };
+type FilterKey = 'anio' | 'proceso' | 'codigo' | 'nombre' | 'estado' | ConditionKey;
 
 const CONDITION_KEYS: ConditionKey[] = ['editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible'];
 
@@ -45,7 +47,7 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
 @Component({
   selector: 'siaf-catalogo-versiones-bandeja',
   standalone: true,
-  imports: [BreadcrumbComponent, ButtonComponent, ColumnVisibilityPanelComponent, DocumentHistoryPanelComponent, FilterPillComponent, IconComponent, IconDropdownMenuComponent, ModalComponent, PageHeaderComponent, PaginationComponent, RecordsSearchToolbarComponent, SnackbarComponent, SideNavComponent, StatusTagComponent, TextFieldComponent, TooltipDirective],
+  imports: [AlertComponent, BreadcrumbComponent, ButtonComponent, ColumnVisibilityPanelComponent, DocumentHistoryPanelComponent, FilterPillComponent, IconComponent, IconDropdownMenuComponent, ModalComponent, PageHeaderComponent, PaginationComponent, RecordsSearchToolbarComponent, SnackbarComponent, SideNavComponent, StatusTagComponent, TextFieldComponent, TooltipDirective],
   template: `
     <main class="min-h-[calc(100vh-56px)] overflow-x-hidden bg-[var(--sys-color-bg-surfaces-surface-lowest)] text-text">
       <div class="w-full">
@@ -127,13 +129,19 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
               </div>
             </article>
           } @else {
-          <article class="flex w-full min-w-0 flex-col rounded-siaf-md bg-surface">
-            <header class="flex h-14 items-center px-siaf-md pt-siaf-md">
+          <article class="flex w-full min-w-0 flex-col rounded-siaf-md bg-surface p-siaf-md">
+            <header class="flex items-center gap-siaf-md">
               <h2 class="m-0 text-base font-bold uppercase tracking-[0.02px] text-text">Versiones</h2>
               <siaf-button class="ml-auto" variant="accent" icon="add" [iconOnly]="true" ariaLabel="Registrar versión" [disabled]="condicionesEnEdicion()" (click)="crearVersion()" />
             </header>
 
-            <div class="flex min-w-0 flex-col gap-siaf-xs p-siaf-md">
+            @if (errorCondiciones()) {
+              <div class="mt-siaf-md">
+                <siaf-alert tone="error" [title]="errorCondiciones()" />
+              </div>
+            }
+
+            <div class="mt-siaf-md flex min-w-0 flex-col">
               <siaf-records-search-toolbar [value]="search()" placeholder="Buscar" [disabled]="condicionesEnEdicion()" (valueChange)="actualizarBusqueda($any($event))">
                 <ng-container actions>
                   <siaf-button variant="text" icon="filter_list" [iconOnly]="true" ariaLabel="Filtros" [activated]="filtrosPanelAbierto()" [disabled]="condicionesEnEdicion()" (click)="abrirFiltros()" />
@@ -141,23 +149,31 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
                 </ng-container>
               </siaf-records-search-toolbar>
 
-              @if (filtrosAplicados().length) {
-                <div class="flex flex-wrap gap-siaf-xs" [class.opacity-50]="condicionesEnEdicion()" aria-label="Filtros aplicados">
-                  @for (filtro of filtrosAplicados(); track filtro) {
-                    <span class="rounded-full bg-[var(--sys-color-bg-surfaces-surface-high)] px-siaf-sm py-1 text-xs text-text">{{ filtro }}</span>
+              @if (filtrosActivos().length) {
+                <div class="mt-siaf-lg flex min-h-8 flex-wrap items-center gap-siaf-xs" [class.opacity-50]="condicionesEnEdicion()" aria-label="Filtros aplicados">
+                  @for (filtro of filtrosActivos(); track filtro.key) {
+                    <span class="inline-flex h-8 items-center gap-siaf-xxs rounded-siaf-md border border-[var(--sys-color-border-states-enabled)] bg-surface px-siaf-xs py-siaf-xxs text-sm leading-normal text-text">
+                      {{ filtro.label }}
+                      <button type="button" class="inline-flex size-5 items-center justify-center rounded-siaf-sm text-[var(--sys-color-icon-states-enabled)]" [attr.aria-label]="'Quitar filtro ' + filtro.label" [disabled]="condicionesEnEdicion()" (click)="quitarFiltroAplicado(filtro.key)">
+                        <siaf-icon name="close" [size]="20" />
+                      </button>
+                    </span>
                   }
+                  <div class="ml-auto">
+                    <siaf-button variant="outline" size="sm" icon="delete" [disabled]="condicionesEnEdicion()" (click)="borrarFiltrosAplicados()">Borrar filtros</siaf-button>
+                  </div>
                 </div>
               }
 
               <!-- Solo esta caja admite scroll horizontal; no se propaga al shell ni a los controles. -->
-              <div class="min-w-0 max-w-full overflow-x-auto rounded-siaf-sm" aria-label="Grilla de versiones">
+              <div class="mt-siaf-lg min-w-0 max-w-full overflow-x-auto rounded-siaf-sm" aria-label="Grilla de versiones">
                 <table class="versiones-grid table-fixed border-collapse text-left text-sm" [style.width.px]="anchoGrillaPx()" [style.min-width.px]="anchoGrillaPx()">
                   <!-- En una tabla fixed los anchos del segundo encabezado no determinan columnas: este colgroup es la fuente única de verdad. -->
                   <colgroup>
                     @if (columnaVisible('anio')) { <col [style.width.px]="70" /> }
-                    @if (columnaVisible('proceso')) { <col [style.width.px]="240" /> }
+                    @if (columnaVisible('proceso')) { <col [style.width.px]="285" /> }
                     @if (columnaVisible('codigo')) { <col [style.width.px]="64" /> }
-                    @if (columnaVisible('nombre')) { <col [style.width.px]="360" /> }
+                    @if (columnaVisible('nombre')) { <col [style.width.px]="315" /> }
                     @if (columnaVisible('descripcion')) { <col [style.width.px]="320" /> }
                     @for (condition of condicionesVisibles(); track condition) { <col [style.width.px]="100" /> }
                     @for (column of vinculadasVisibles(); track column) { <col [style.width.px]="anchoColumnaVinculadaPx(column)" /> }
@@ -168,7 +184,7 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
                   </colgroup>
                   <thead class="bg-surface-high text-[10px] font-bold uppercase text-text">
                     <tr class="h-10 border-b border-[var(--sys-color-divider-default)]">
-                      @if (columnaVisible('anio')) { <th rowspan="2" class="w-[70px] px-siaf-md text-left">Año</th> } @if (columnaVisible('proceso')) { <th rowspan="2" class="w-[240px] px-siaf-md text-left">Proceso</th> } @if (columnaVisible('codigo')) { <th rowspan="2" class="w-[64px] px-siaf-md text-left">Código</th> } @if (columnaVisible('nombre')) { <th rowspan="2" class="w-[360px] px-siaf-md text-left">Nombre</th> } @if (columnaVisible('descripcion')) { <th rowspan="2" class="w-[320px] px-siaf-md text-left">Descripción</th> }
+                      @if (columnaVisible('anio')) { <th rowspan="2" class="w-[70px] px-siaf-md text-left">Año</th> } @if (columnaVisible('proceso')) { <th rowspan="2" class="w-[285px] px-siaf-md text-left">Proceso</th> } @if (columnaVisible('codigo')) { <th rowspan="2" class="w-[64px] px-siaf-md text-left">Código</th> } @if (columnaVisible('nombre')) { <th rowspan="2" class="w-[315px] px-siaf-md text-left">Nombre</th> } @if (columnaVisible('descripcion')) { <th rowspan="2" class="w-[320px] px-siaf-md text-left">Descripción</th> }
                       @if (condicionesVisibles().length) { <th [attr.colspan]="condicionesVisibles().length" class="condiciones-versiones-grupo px-siaf-md text-center">Condiciones de versión</th> }
                       @if (vinculadasVisibles().length) { <th [attr.colspan]="vinculadasVisibles().length" class="border-r border-[var(--sys-color-divider-strong)] px-siaf-md text-center">Versión vinculada</th> }
                       @if (columnaVisible('estado')) { <th rowspan="2" class="w-[170px] min-w-[170px] px-siaf-md text-left">Estado</th> } @if (columnaVisible('desde')) { <th rowspan="2" class="w-[120px] px-siaf-md text-left">Fecha desde</th> } @if (columnaVisible('hasta')) { <th rowspan="2" class="w-[120px] px-siaf-md text-left">Fecha hasta</th> }
@@ -260,10 +276,6 @@ const MIGRATABLE_LOCAL_STORAGE_KEYS = ['siaf.catalogo-versiones.demo.v2', 'siaf.
                   </tbody>
                 </table>
               </div>
-
-              @if (errorCondiciones()) {
-                <p class="m-0 px-siaf-xs text-sm text-[var(--sys-color-text-error)]" role="alert">{{ errorCondiciones() }}</p>
-              }
 
               <siaf-pagination position="Bottom" [rowPage]="true" [disabled]="condicionesEnEdicion()" [page]="pagina()" [pageSize]="filasPorPagina()" [rowsPerPage]="filasPorPagina()" [totalItems]="persistedFilteredRows().length" [totalPages]="totalPaginas()" (previous)="cambiarPagina(-1)" (next)="cambiarPagina(1)" (rowsPerPageChange)="cambiarFilasPorPagina($event)" />
             </div>
@@ -627,17 +639,9 @@ export class CatalogoVersionesBandejaComponent implements OnDestroy {
   readonly opcionesAnio = [{ label: ANIO_DEMO, value: ANIO_DEMO }];
   readonly opcionesProceso = [
     { label: 'Todos', value: '' },
-    { label: 'M02.1.9 Programación Multianual Presupuestaria', value: 'M02.1.9 Programación Multianual Presupuestaria' },
-    { label: 'M02.1.9.1 Asignación Presupuestaria Multianual', value: PROCESO_ASIGNACION },
-    { label: 'M02.1.9.2 Programación Multianual Pliego - UE', value: PROCESO_PROGRAMACION_UE },
-    { label: 'M02.1.10 Formulación y Aprobación del Presupuesto', value: 'M02.1.10 Formulación y Aprobación del Presupuesto' },
+    ...PROCESOS_VERSIONES_DEMO.map(proceso => ({ label: `${proceso.codigo} ${proceso.nombre}`, value: `${proceso.codigo} ${proceso.nombre}` })),
   ];
-  readonly opcionesProcesoEdicion = [
-    { label: 'M02.1.9 Programación Multianual Presupuestaria', value: 'M02.1.9 Programación Multianual Presupuestaria' },
-    { label: 'M02.1.9.1 Asignación Presupuestaria Multianual', value: 'M02.1.9.1 Asignación Presupuestaria Multianual' },
-    { label: 'M02.1.9.2 Programación Multianual Pliego - UE', value: 'M02.1.9.2 Programación Multianual Pliego - UE' },
-    { label: 'M02.1.10 Formulación y Aprobación del Presupuesto', value: 'M02.1.10 Formulación y Aprobación del Presupuesto' },
-  ];
+  readonly opcionesProcesoEdicion = PROCESOS_VERSIONES_DEMO.map(proceso => ({ label: `${proceso.codigo} ${proceso.nombre}`, value: `${proceso.codigo} ${proceso.nombre}` }));
   readonly opcionesCodigo = [{ label: 'Todos', value: '' }, { label: '1', value: '1' }, { label: '2', value: '2' }, { label: '3', value: '3' }, { label: '4', value: '4' }, { label: '5', value: '5' }];
   readonly opcionesNombre = computed(() => [
     { label: 'Todos', value: '' },
@@ -680,7 +684,7 @@ export class CatalogoVersionesBandejaComponent implements OnDestroy {
       // El retorno de una alta es el único punto que reemplaza el proceso
       // filtrado. Las ediciones, cancelaciones y validaciones fallidas no
       // llevan un registro de vuelta y por lo tanto no alteran la búsqueda.
-      if (!history.state?.['edicionVersion']) this.aplicarFiltroProcesoDeRegistro(registro.proceso);
+      if (!history.state?.['edicionVersion']) this.aplicarFiltrosDeRegistro(registro.anio, registro.proceso);
     }
   }
   ngOnDestroy(): void {
@@ -746,6 +750,22 @@ export class CatalogoVersionesBandejaComponent implements OnDestroy {
       condicion('Disponible', this.disponibleFiltro()),
     ].filter((filtro): filtro is string => Boolean(filtro));
   });
+  readonly filtrosActivos = computed(() => {
+    const condicion = (key: FilterKey, label: string, value: string) => value ? { key, label } : null;
+    return [
+      this.anio() ? { key: 'anio' as const, label: 'Año' } : null,
+      this.procesoFiltro() ? { key: 'proceso' as const, label: 'Proceso' } : null,
+      this.codigoFiltro() ? { key: 'codigo' as const, label: 'Código' } : null,
+      this.nombreFiltro() ? { key: 'nombre' as const, label: 'Nombre' } : null,
+      this.estado() ? { key: 'estado' as const, label: 'Estado' } : null,
+      condicion('editable', 'Editable', this.editableFiltro()),
+      condicion('pliego', 'Pliego', this.pliegoFiltro()),
+      condicion('vigente', 'Vigente', this.vigenteFiltro()),
+      condicion('oficial', 'Oficial', this.oficialFiltro()),
+      condicion('definitiva', 'Definitiva', this.definitivaFiltro()),
+      condicion('disponible', 'Disponible', this.disponibleFiltro()),
+    ].filter((filtro): filtro is { key: FilterKey; label: string } => Boolean(filtro));
+  });
   // La fila en alta se muestra para editarse, pero aún no es un registro de la
   // bandeja: no debe alterar los contadores ni la paginación hasta grabarse.
   readonly persistedFilteredRows = computed(() => this.filteredRows().filter(row => !this.esFilaNueva(row.id)));
@@ -796,6 +816,27 @@ export class CatalogoVersionesBandejaComponent implements OnDestroy {
     if (this.condicionesEnEdicion()) return;
     this.anioFiltro.set(ANIO_DEMO); this.procesoFiltro.set(PROCESO_ASIGNACION); this.codigoFiltro.set(''); this.nombreFiltro.set(''); this.estadoFiltro.set('Activo'); this.editableFiltro.set(''); this.pliegoFiltro.set(''); this.vigenteFiltro.set(''); this.oficialFiltro.set(''); this.definitivaFiltro.set(''); this.disponibleFiltro.set('');
     this.pagina.set(1);
+  }
+  quitarFiltroAplicado(key: FilterKey): void {
+    if (this.condicionesEnEdicion()) return;
+    if (key === 'anio') { this.anio.set(''); this.anioFiltro.set(''); }
+    if (key === 'proceso') this.procesoFiltro.set('');
+    if (key === 'codigo') this.codigoFiltro.set('');
+    if (key === 'nombre') this.nombreFiltro.set('');
+    if (key === 'estado') { this.estado.set(''); this.estadoFiltro.set(''); }
+    if (key === 'editable') this.editableFiltro.set('');
+    if (key === 'pliego') this.pliegoFiltro.set('');
+    if (key === 'vigente') this.vigenteFiltro.set('');
+    if (key === 'oficial') this.oficialFiltro.set('');
+    if (key === 'definitiva') this.definitivaFiltro.set('');
+    if (key === 'disponible') this.disponibleFiltro.set('');
+    this.pagina.set(1);
+    this.persistirFiltros();
+  }
+  borrarFiltrosAplicados(): void {
+    if (this.condicionesEnEdicion()) return;
+    (['anio', 'proceso', 'codigo', 'nombre', 'estado', 'editable', 'pliego', 'vigente', 'oficial', 'definitiva', 'disponible'] as FilterKey[])
+      .forEach(key => this.quitarFiltroAplicado(key));
   }
   aplicarFiltros(): void { if (this.condicionesEnEdicion()) return; this.snackbarVisible.set(false); this.anio.set(this.anioFiltro()); this.estado.set(this.estadoFiltro()); this.pagina.set(1); this.persistirFiltros(); this.cerrarFiltros(); }
   cambiarProcesoFiltro(value: string): void { if (this.condicionesEnEdicion()) return; this.procesoFiltro.set(value); this.pagina.set(1); }
@@ -888,14 +929,18 @@ export class CatalogoVersionesBandejaComponent implements OnDestroy {
     try {
       const filtros = JSON.parse(sessionStorage.getItem(FILTERS_STORAGE_KEY) ?? 'null') as CatalogFilters | null;
       if (!filtros) return;
-      this.anio.set(filtros.anio); this.anioFiltro.set(filtros.anio); this.procesoFiltro.set(filtros.proceso); this.codigoFiltro.set(filtros.codigo); this.nombreFiltro.set(filtros.nombre); this.estado.set(filtros.estado); this.estadoFiltro.set(filtros.estado);
+      const proceso = normalizarProcesoDemo(filtros.proceso);
+      this.anio.set(filtros.anio); this.anioFiltro.set(filtros.anio); this.procesoFiltro.set(proceso); this.codigoFiltro.set(filtros.codigo); this.nombreFiltro.set(filtros.nombre); this.estado.set(filtros.estado); this.estadoFiltro.set(filtros.estado);
       this.editableFiltro.set(filtros.editable); this.pliegoFiltro.set(filtros.pliego); this.vigenteFiltro.set(filtros.vigente); this.oficialFiltro.set(filtros.oficial); this.definitivaFiltro.set(filtros.definitiva); this.disponibleFiltro.set(filtros.disponible);
+      if (proceso !== filtros.proceso) this.persistirFiltros();
     } catch { this.borrarFiltrosPersistidos(); }
   }
   private borrarFiltrosPersistidos(): void {
     if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(FILTERS_STORAGE_KEY);
   }
-  private aplicarFiltroProcesoDeRegistro(proceso: string): void {
+  private aplicarFiltrosDeRegistro(anio: string, proceso: string): void {
+    this.anio.set(anio);
+    this.anioFiltro.set(anio);
     this.procesoFiltro.set(proceso);
     this.pagina.set(1);
     this.persistirFiltros();
@@ -920,7 +965,7 @@ export class CatalogoVersionesBandejaComponent implements OnDestroy {
   readonly vinculadasVisibles = computed(() => ['vinculadaAnio', 'vinculadaProceso', 'vinculadaCodigo', 'vinculadaNombre'].filter(key => this.columnaVisible(key)));
   readonly anchoGrillaPx = computed(() => {
     const bases: Array<[string, number]> = [
-      ['anio', 70], ['proceso', 240], ['codigo', 64], ['nombre', 360], ['descripcion', 320],
+      ['anio', 70], ['proceso', 285], ['codigo', 64], ['nombre', 315], ['descripcion', 320],
       ['estado', 170], ['desde', 120], ['hasta', 120]
     ];
     const anchoGeneral = bases.reduce((total, [key, width]) => total + (this.columnaVisible(key) ? width : 0), 0);
@@ -1160,6 +1205,7 @@ export class CatalogoVersionesBandejaComponent implements OnDestroy {
     return filas.map(fila => {
       return {
         ...fila,
+        proceso: normalizarProcesoDemo(fila.proceso),
         // El Año identifica el ejercicio fiscal 2027; las vigencias son
         // operaciones realizadas durante 2026. Esta migración alcanza la
         // sesión ya abierta sin quitar altas ni preferencias del usuario.
@@ -1167,7 +1213,7 @@ export class CatalogoVersionesBandejaComponent implements OnDestroy {
         desde: this.normalizarFechaDeVigencia(fila.desde),
         hasta: this.normalizarFechaDeVigencia(fila.hasta),
         auditadoEn: fila.auditadoEn.replace('/2027', '/2026'),
-        ...(fila.vinculada ? { vinculada: { ...fila.vinculada, ...(fila.vinculada.anio === '2026' ? { anio: ANIO_DEMO } : {}) } } : {}),
+        ...(fila.vinculada ? { vinculada: { ...fila.vinculada, proceso: normalizarProcesoDemo(fila.vinculada.proceso), ...(fila.vinculada.anio === '2026' ? { anio: ANIO_DEMO } : {}) } } : {}),
       };
     });
   }

@@ -15,7 +15,7 @@ import { RadioComponent } from '../../../shared/ui/radio/radio.component';
 import { SummaryCardComponent, SummaryCardField } from '../../../shared/ui/summary-card/summary-card.component';
 import { TextAreaControlComponent } from '../../../shared/ui/text-area-control/text-area-control.component';
 import { TextFieldComponent } from '../../../shared/ui/text-field/text-field.component';
-import { ANIO_DEMO, fechaOperacionActual } from './catalogo-versiones-demo.data';
+import { ANIO_DEMO, fechaOperacionActual, normalizarProcesoDemo, PROCESOS_VERSIONES_DEMO } from './catalogo-versiones-demo.data';
 
 type ProcesoDemo = { id: string; codigo: string; nombre: string };
 type VersionVinculadaDemo = { id: string; anio: string; proceso: string; codigo: string; nombre: string };
@@ -60,14 +60,16 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
                       [disabled]="true"
                     />
                   </div>
-                  <siaf-summary-card
-                    [fields]="camposProcesoSeleccionado()"
-                    [bordered]="true"
-                    [showIndicator]="true"
-                    [showClose]="true"
-                    closeLabel="Quitar proceso"
-                    (closed)="retirarProceso()"
-                  />
+                  <div class="proceso-seleccionado" [class.proceso-seleccionado-bloqueado]="esEdicion" [attr.aria-disabled]="esEdicion ? 'true' : null">
+                    <siaf-summary-card
+                      [fields]="camposProcesoSeleccionado()"
+                      [bordered]="true"
+                      [showIndicator]="true"
+                      [showClose]="true"
+                      closeLabel="Quitar proceso"
+                      (closed)="retirarProceso()"
+                    />
+                  </div>
                 </section>
               } @else {
                 <empty-section title="Proceso" message="No se ha seleccionado ningún proceso. Haga clic en el botón para realizar una selección." (actionClicked)="abrirSelectorProceso()" />
@@ -191,6 +193,7 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
     :host ::ng-deep siaf-page-header header { padding-left: var(--sys-padding-base-md, 16px); padding-right: var(--sys-padding-base-md, 16px); }
     :host ::ng-deep siaf-breadcrumb nav { height: auto; min-height: 40px; padding-top: var(--sys-padding-base-md, 16px); padding-bottom: var(--sys-padding-base-md, 16px); }
     :host ::ng-deep siaf-page-header header { padding-top: var(--sys-padding-base-md, 16px); padding-bottom: var(--sys-padding-base-md, 16px); }
+    :host ::ng-deep .proceso-seleccionado-bloqueado siaf-summary-card button { pointer-events: none; cursor: not-allowed; opacity: 0.45; }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -222,12 +225,7 @@ export class CatalogoVersionesRegistroComponent {
     { label: this.esEdicion ? 'Editar registro de versión' : 'Agregar registro de versión' },
   ];
   readonly estados = [{ label: 'Activo', value: 'activo' }, { label: 'Inactivo', value: 'inactivo' }];
-  readonly procesos: ProcesoDemo[] = [
-    { id: 'pmp', codigo: 'M02.1.9', nombre: 'Programación Multianual Presupuestaria' },
-    { id: 'apm', codigo: 'M02.1.9.1', nombre: 'Asignación Presupuestaria Multianual' },
-    { id: 'pmp-ue', codigo: 'M02.1.9.2', nombre: 'Programación Multianual Pliego - UE' },
-    { id: 'fap', codigo: 'M02.1.10', nombre: 'Formulación y Aprobación del Presupuesto' },
-  ];
+  readonly procesos: ProcesoDemo[] = PROCESOS_VERSIONES_DEMO;
   readonly columnasProceso: SelectionColumn<ProcesoDemo>[] = [
     { key: 'codigo', label: 'Código', widthClass: 'w-40' },
     { key: 'nombre', label: 'Nombre' },
@@ -344,6 +342,7 @@ export class CatalogoVersionesRegistroComponent {
   }
 
   retirarProceso(): void {
+    if (this.esEdicion) return;
     this.procesoSeleccionado.set(null);
     this.procesoTemporalIds.set([]);
     this.busquedaProceso.set('');
@@ -475,11 +474,12 @@ export class CatalogoVersionesRegistroComponent {
       const normalizados = Array.isArray(registros) ? (registros as RegistroVersionState[]).map(registro => {
         return {
           ...registro,
+          proceso: normalizarProcesoDemo(registro.proceso),
           ...(registro.anio === '2026' ? { anio: ANIO_DEMO } : {}),
           desde: this.normalizarFechaDeVigencia(registro.desde),
           hasta: this.normalizarFechaDeVigencia(registro.hasta),
           auditadoEn: registro.auditadoEn.replace('/2027', '/2026'),
-          ...(registro.vinculada ? { vinculada: { ...registro.vinculada, ...(registro.vinculada.anio === '2026' ? { anio: ANIO_DEMO } : {}) } } : {}),
+          ...(registro.vinculada ? { vinculada: { ...registro.vinculada, proceso: normalizarProcesoDemo(registro.vinculada.proceso), ...(registro.vinculada.anio === '2026' ? { anio: ANIO_DEMO } : {}) } } : {}),
         };
       }) : [];
       if (normalizados.length) sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(normalizados));

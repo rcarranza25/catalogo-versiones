@@ -13,45 +13,48 @@ describe('ProcessMenuTreeComponent', () => {
     fixture.detectChanges();
   });
 
-  it('muestra los antecesores al buscar Configuración de versiones', () => {
+  it('muestra los antecesores al buscar Catálogo de archivos de la APM', () => {
     const component = fixture.componentInstance;
-    component.onQuery('Configuración de versiones');
+    component.onQuery('Catálogo de archivos de la APM');
 
     const clasificadores = component.filteredNodes[0];
     const catalogos = clasificadores.children![0];
-    const versiones = catalogos.children![0];
+    const archivos = catalogos.children![0];
 
     expect(clasificadores.label).toBe('Clasificadores y catálogos');
     expect(catalogos.label).toBe('Catálogos');
-    expect(versiones.label).toBe('Catálogo de versiones de presupuesto');
-    expect(versiones.children![0].label).toBe('Configuración de versiones');
+    expect(archivos.label).toBe('Catálogo de archivos de la APM');
   });
 
   it('inicia con Clasificadores y catálogos abierto y los siguientes grupos contraídos', () => {
     const component = fixture.componentInstance;
     const clasificadores = CATALOG_PROCESS_MENU_TREE[1];
     const catalogos = clasificadores.children![1];
-    const versiones = catalogos.children![0];
+    const archivos = catalogos.children![0];
 
     expect(component.isExpanded(clasificadores)).toBeTrue();
     expect(component.isExpanded(catalogos)).toBeFalse();
-    expect(component.isExpanded(versiones)).toBeFalse();
+    expect(component.isExpanded(archivos)).toBeFalse();
   });
 
-  it('muestra únicamente Catálogo de versiones de presupuesto dentro de Catálogos', () => {
+  it('muestra los catálogos de Versiones y Archivos APM dentro de Catálogos', () => {
     const catalogos = CATALOG_PROCESS_MENU_TREE[1].children![1];
 
-    expect(catalogos.children!.map(node => node.label)).toEqual(['Catálogo de versiones de presupuesto']);
+    expect(catalogos.children!.map(node => node.label)).toEqual([
+      'Catálogo de Versiones de Presupuesto',
+      'Catálogo de archivos de la APM',
+    ]);
   });
 
-  it('emite la ruta existente al seleccionar Configuración de versiones', () => {
+  it('emite la ruta del catálogo al seleccionar Archivos de la APM', () => {
     const component = fixture.componentInstance;
     const selected: string[] = [];
     component.nodeSelected.subscribe(node => selected.push(node.moduleRoute ?? ''));
-    const configuracion = CATALOG_PROCESS_MENU_TREE[1].children![1].children![0].children![0];
+    const [versiones, archivos] = CATALOG_PROCESS_MENU_TREE[1].children![1].children!;
 
-    component.activate(configuracion);
+    component.activate(versiones);
+    component.activate(archivos);
 
-    expect(selected).toEqual(['/procesos/catalogo-versiones']);
+    expect(selected).toEqual(['/procesos/catalogo-versiones', '/procesos/catalogo-archivos-apm']);
   });
 });

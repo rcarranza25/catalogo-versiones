@@ -227,7 +227,7 @@ export class LoginComponent {
   readonly authService = inject(AuthService);
 
   constructor() {
-    this.title.setTitle('Catálogo de Versiones · SIAF-RP');
+    this.title.setTitle('Inicio de sesión · SIAF-RP');
   }
 
   readonly usuario = signal('');
@@ -253,15 +253,16 @@ export class LoginComponent {
 
   onSubmit(): void {
     if (!this.usuario() || !this.contrasena()) return;
-    // Cada ingreso comienza el flujo del catálogo con sus cuatro versiones
-    // iniciales, sin conservar altas o ediciones de una sesión anterior.
+    const rutaInicial = USUARIOS_DEMO.find(usuario => usuario.dni === this.usuario().trim())?.rutaInicial ?? '/panel';
+    // Cada ingreso comienza los catálogos del demo con sus datos iniciales,
+    // sin conservar altas o ediciones de una sesión anterior.
     try {
       localStorage.removeItem('siaf.catalogo-versiones.demo.v2');
       localStorage.removeItem('siaf.catalogo-versiones.rows');
       sessionStorage.removeItem('siaf.catalogo-versiones.session.v1');
     } catch { /* El catálogo también se inicializa sin almacenamiento local. */ }
     this.authService.login(this.usuario().trim(), this.contrasena()).subscribe({
-      next: () => void this.router.navigate(['/panel']),
+      next: () => void this.router.navigateByUrl(rutaInicial),
     });
   }
 

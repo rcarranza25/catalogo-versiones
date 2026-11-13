@@ -3,7 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 
-import { PROCESO_ASIGNACION, PROCESO_PROGRAMACION_UE } from './catalogo-versiones-demo.data';
+import { PROCESO_ASIGNACION, PROCESO_FORMULACION, PROCESO_PROGRAMACION_UE } from './catalogo-versiones-demo.data';
 import { CatalogoVersionesBandejaComponent } from './catalogo-versiones-bandeja.component';
 
 const FILTERS_STORAGE_KEY = 'siaf.catalogo-versiones.filters.v1';
@@ -48,6 +48,37 @@ describe('CatalogoVersionesBandejaComponent', () => {
     expect(sessionStorage.getItem(FILTERS_STORAGE_KEY)).toBeNull();
   });
 
+  it('permite retirar chips individuales y borrar los filtros aplicados', async () => {
+    const component = await crearComponente();
+
+    expect(component.filtrosActivos().map(filtro => filtro.label)).toEqual(['Año', 'Proceso', 'Estado']);
+    component.quitarFiltroAplicado('proceso');
+    expect(component.filtrosActivos().map(filtro => filtro.label)).toEqual(['Año', 'Estado']);
+
+    component.borrarFiltrosAplicados();
+    expect(component.filtrosActivos()).toEqual([]);
+    expect(component.anio()).toBe('');
+    expect(component.estado()).toBe('');
+  });
+
+  it('normaliza procesos y vínculos persistidos con las denominaciones anteriores', async () => {
+    const procesoAnterior = 'M02.1.9.1 Asignación Presupuestaria Multianual';
+    const vinculadaAnterior = 'M02.1.9.2 Programación Multianual Pliego - UE';
+    sessionStorage.setItem('siaf.catalogo-versiones.session.v1', JSON.stringify(Array.from({ length: 4 }, (_, index) => ({
+      id: index + 1, anio: '2027', proceso: procesoAnterior, codigo: String(index + 1), nombre: `Versión ${index + 1}`,
+      descripcion: 'Registro persistido.', editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false,
+      estado: 'Activo', desde: '05/07/2026', hasta: '-', auditadoEn: '05/07/2026 08:00',
+      ...(index === 0 ? { vinculada: { anio: '2027', proceso: vinculadaAnterior, codigo: '1', nombre: 'Versión vinculada' } } : {}),
+    }))));
+    sessionStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify({ anio: '2027', proceso: 'M02.1.10 Formulación y Aprobación del Presupuesto', codigo: '', nombre: '', estado: 'Activo', editable: '', pliego: '', vigente: '', oficial: '', definitiva: '', disponible: '' }));
+
+    const component = await crearComponente();
+
+    expect(component.rows()[0].proceso).toBe(PROCESO_ASIGNACION);
+    expect(component.rows()[0].vinculada?.proceso).toBe(PROCESO_PROGRAMACION_UE);
+    expect(component.procesoFiltro()).toBe(PROCESO_FORMULACION);
+  });
+
   it('aplica el proceso de una alta exitosa, reemplaza el anterior y conserva los demás filtros', async () => {
     sessionStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify({
       anio: '2027', proceso: PROCESO_ASIGNACION, codigo: '', nombre: '', estado: 'Activo',
@@ -56,7 +87,7 @@ describe('CatalogoVersionesBandejaComponent', () => {
     history.replaceState({
       edicionVersion: false,
       registroVersion: {
-        id: 99, anio: '2027', proceso: PROCESO_PROGRAMACION_UE, codigo: '1', nombre: 'Nueva versión UE', descripcion: 'Registro creado correctamente.',
+        id: 99, anio: '2028', proceso: PROCESO_PROGRAMACION_UE, codigo: '1', nombre: 'Nueva versión UE', descripcion: 'Registro creado correctamente.',
         editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false,
         estado: 'Activo', desde: '05/07/2026', hasta: '-', auditadoEn: '05/07/2026 08:00',
       },
@@ -65,10 +96,12 @@ describe('CatalogoVersionesBandejaComponent', () => {
     const component = await crearComponente();
 
     expect(component.procesoFiltro()).toBe(PROCESO_PROGRAMACION_UE);
+    expect(component.anio()).toBe('2028');
     expect(component.filtrosAplicados()).toContain(`Proceso: ${PROCESO_PROGRAMACION_UE}`);
     expect(component.persistedFilteredRows().map(row => row.id)).toEqual([99]);
     expect(component.pagina()).toBe(1);
     expect(JSON.parse(sessionStorage.getItem(FILTERS_STORAGE_KEY)!).proceso).toBe(PROCESO_PROGRAMACION_UE);
+    expect(JSON.parse(sessionStorage.getItem(FILTERS_STORAGE_KEY)!).anio).toBe('2028');
   });
 
   it('muestra las versiones APM al volver de una alta APM y precarga el panel con ese proceso', async () => {

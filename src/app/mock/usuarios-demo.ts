@@ -3,11 +3,12 @@ import type { PerfilItem } from '../core/api/auth-api.service';
 /**
  * Usuarios de demostración del taller. Entran con su DNI y la contraseña común.
  *
- * - Ana (configurador) registra y edita versiones.
+ * - Ana (configurador) registra y edita Archivos de la APM.
+ * - Carlos (configurador) registra y edita Versiones.
  *
  * Son datos de ejemplo: no hay contraseñas reales ni se validan contra un servidor.
  */
-export const CONTRASENA_DEMO = 'Versiones2027*';
+export const CONTRASENA_DEMO = 'Archivos2027';
 
 export interface UsuarioDemo {
   id: string;
@@ -18,6 +19,10 @@ export interface UsuarioDemo {
   apellidoMaterno: string;
   /** Qué muestra en el panel de usuarios del login. */
   descripcion: string;
+  /** Destino del flujo demo tras autenticar al usuario. */
+  rutaInicial?: string;
+  /** Catálogo que se muestra en el árbol de Procesos para esta sesión demo. */
+  catalogoProcesos: 'versiones' | 'archivos-apm';
   perfiles: PerfilItem[];
 }
 
@@ -51,10 +56,23 @@ export const USUARIOS_DEMO: UsuarioDemo[] = [
     nombres: 'Ana',
     apellidoPaterno: 'Torres',
     apellidoMaterno: 'Díaz',
+    descripcion: 'Configurador: Registra y edita archivos de la APM',
+    rutaInicial: '/panel',
+    catalogoProcesos: 'archivos-apm',
+    // Conserva el código funcional CREADOR para las reglas existentes del demo.
+    perfiles: [perfil('perfil-ana-configurador', 'CREADOR', 'Configurador', 'Configurador de Archivos APM')],
+  },
+  {
+    id: 'usr-carlos-versiones',
+    dni: '22222222',
+    email: 'carlos.vega@taller.pe',
+    nombres: 'Carlos',
+    apellidoPaterno: 'Vega',
+    apellidoMaterno: 'Ríos',
     descripcion: 'Configurador: Registra y edita versiones',
-    // Conserva el código funcional CREADOR para las reglas existentes del
-    // demo; la denominación visible es exclusiva del Catálogo de Versiones.
-    perfiles: [perfil('perfil-ana-configurador', 'CREADOR', 'Configurador', 'Configurador de versiones')],
+    rutaInicial: '/panel',
+    catalogoProcesos: 'versiones',
+    perfiles: [perfil('perfil-carlos-configurador-versiones', 'CREADOR', 'Configurador', 'Configurador de versiones')],
   },
 ];
 
@@ -67,6 +85,7 @@ export const ACTOR_APROBADOR_HISTORIAL: UsuarioDemo = {
   apellidoPaterno: 'Ramírez',
   apellidoMaterno: 'Soto',
   descripcion: '',
+  catalogoProcesos: 'archivos-apm',
   perfiles: [],
 };
 
