@@ -41,6 +41,12 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
             </div>
           </header>
 
+          @if (mostrarAlertaInactivacion()) {
+            <div class="mt-siaf-md">
+              <siaf-alert tone="info" [title]="mensajeConfirmacionInactivacion()" [showClose]="true" (closed)="cerrarAlertaInactivacion()" />
+            </div>
+          }
+
           <div class="mt-siaf-lg grid gap-siaf-lg">
             @if (mensajeValidacion()) {
               <siaf-alert tone="error" [title]="mensajeValidacion()" />
@@ -76,21 +82,21 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
               }
               <div class="grid gap-siaf-lg md:grid-cols-3">
                 <siaf-input class="md:col-span-1" label="Código" [required]="true" [autoSuccess]="false" [disabled]="esEdicion || !procesoSeleccionado()" [error]="errorCodigo()" [value]="codigo()" (valueChange)="cambiarCodigo($any($event))" (blurred)="validarCodigoAlSalir()" />
-                <siaf-input class="md:col-span-2" label="Nombre" [required]="true" [autoSuccess]="false" [disabled]="!procesoSeleccionado()" [error]="errorNombre()" [value]="nombre()" (valueChange)="cambiarNombre($any($event))" />
+                <siaf-input class="md:col-span-2" label="Nombre" [required]="true" [autoSuccess]="false" [disabled]="!procesoSeleccionado() || edicionInactiva()" [error]="errorNombre()" [value]="nombre()" (valueChange)="cambiarNombre($any($event))" />
               </div>
-              <text-area-control placeholder="Descripción" [required]="true" [autoSuccess]="false" [disabled]="!procesoSeleccionado()" [error]="errorDescripcion()" [maxlength]="500" [value]="descripcion()" (valueChange)="cambiarDescripcion($event)" />
+              <text-area-control placeholder="Descripción" [required]="true" [autoSuccess]="false" [disabled]="!procesoSeleccionado() || edicionInactiva()" [error]="errorDescripcion()" [maxlength]="500" [value]="descripcion()" (valueChange)="cambiarDescripcion($event)" />
             </section>
 
             <section class="grid gap-siaf-md">
               <h3 class="m-0 text-sm font-bold uppercase text-text">Condiciones de versión</h3>
               <div class="grid grid-cols-1 gap-siaf-xs sm:grid-cols-2 lg:grid-cols-3 lg:gap-siaf-lg 2xl:grid-cols-6">
-                <siaf-checkbox label="Editable" [checked]="editable()" (checkedChange)="cambiarEditable($event)" />
-                <siaf-checkbox label="Pliego" [checked]="pliego()" (checkedChange)="pliego.set($event)" />
-                <siaf-checkbox label="Vigente" [checked]="vigente()" (checkedChange)="vigente.set($event)" />
-                <siaf-checkbox label="Oficial" [checked]="oficial()" (checkedChange)="oficial.set($event)" />
-                <siaf-checkbox label="Definitiva" [checked]="definitiva()" (checkedChange)="definitiva.set($event)" />
+                <siaf-checkbox label="Editable" [checked]="editable()" [disabled]="edicionInactiva()" (checkedChange)="cambiarEditable($event)" />
+                <siaf-checkbox label="Pliego" [checked]="pliego()" [disabled]="edicionInactiva()" (checkedChange)="pliego.set($event)" />
+                <siaf-checkbox label="Vigente" [checked]="vigente()" [disabled]="edicionInactiva()" (checkedChange)="vigente.set($event)" />
+                <siaf-checkbox label="Oficial" [checked]="oficial()" [disabled]="edicionInactiva()" (checkedChange)="oficial.set($event)" />
+                <siaf-checkbox label="Definitiva" [checked]="definitiva()" [disabled]="edicionInactiva()" (checkedChange)="definitiva.set($event)" />
                 <div>
-                  <siaf-checkbox label="Disponible" [checked]="disponible()" [disabled]="editable()" (checkedChange)="cambiarDisponible($event)" />
+                  <siaf-checkbox label="Disponible" [checked]="disponible()" [disabled]="editable() || edicionInactiva()" (checkedChange)="cambiarDisponible($event)" />
                 </div>
               </div>
             </section>
@@ -99,12 +105,14 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
               <section class="grid gap-siaf-md">
                 <div class="flex min-h-10 items-center justify-between gap-siaf-md">
                   <h3 class="m-0 text-sm font-bold uppercase text-text">Versión vinculada</h3>
-                  <siaf-button variant="accent" icon="search" [iconOnly]="true" ariaLabel="Buscar versión vinculada" (click)="abrirSelectorVersionVinculada()" />
+                  <siaf-button variant="accent" icon="search" [iconOnly]="true" ariaLabel="Buscar versión vinculada" [disabled]="edicionInactiva()" (click)="abrirSelectorVersionVinculada()" />
                 </div>
-                <siaf-summary-card [fields]="camposVersionVinculada()" [bordered]="true" [showIndicator]="true" [showClose]="true" closeLabel="Quitar versión vinculada" (closed)="retirarVersionVinculada()" />
+                <div class="version-vinculada-card">
+                  <siaf-summary-card [fields]="camposVersionVinculada()" [bordered]="true" [showIndicator]="true" [showClose]="!edicionInactiva()" closeLabel="Quitar versión vinculada" (closed)="retirarVersionVinculada()" />
+                </div>
               </section>
             } @else {
-              <empty-section title="Versión vinculada" message="No se ha seleccionado ninguna versión. Haga clic en el botón para realizar una selección." [disabled]="!procesoSeleccionado()" (actionClicked)="abrirSelectorVersionVinculada()">
+              <empty-section title="Versión vinculada" message="No se ha seleccionado ninguna versión. Haga clic en el botón para realizar una selección." [disabled]="!procesoSeleccionado() || edicionInactiva()" (actionClicked)="abrirSelectorVersionVinculada()">
                 @if (!versionesVinculables().length && alertaVersionVinculadaVisible()) {
                   <siaf-alert tone="info" title="No existen versiones disponibles para vincular." [showClose]="true" (closed)="cerrarAlertaVersionVinculada()" />
                 }
@@ -114,7 +122,7 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
             <section class="grid gap-siaf-md">
               <h3 class="m-0 text-sm font-bold uppercase text-text">Vigencia de versión</h3>
               <div class="grid items-start gap-siaf-lg md:grid-cols-3">
-                <siaf-radio-group label="Estado" name="estado-version" [inline]="true" [disabled]="!esEdicion" [options]="estados" [value]="estado()" (valueChange)="estado.set($event)" />
+                <siaf-radio-group label="Estado" name="estado-version" [inline]="true" [disabled]="!esEdicion" [options]="estados" [value]="estado()" (valueChange)="cambiarEstado($event)" />
                 <siaf-date-time-picker label="Fecha desde" [fullWidth]="true" [defaultToToday]="false" [value]="fechaDesde()" [disabled]="true" [hint]="!esEdicion ? 'Será asignada cuando se grabe el registro.' : ''" />
                 <siaf-date-time-picker label="Fecha hasta" [fullWidth]="true" [defaultToToday]="false" [value]="fechaHasta()" [displayValueOverride]="fechaHastaPendienteDeCierre() ? '-' : ''" [disabled]="true" [hint]="fechaHastaPendienteDeCierre() ? 'Será asignada cuando se grabe el registro' : ''" />
               </div>
@@ -166,8 +174,8 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
       <siaf-modal
         [open]="confirmacionGrabacionAbierta()"
         variant="custom"
-        title="¿Está seguro de grabar la versión de presupuesto?"
-        description=""
+        [title]="tituloConfirmacionGrabacion()"
+        [description]="descripcionConfirmacionGrabacion()"
         illustrationSrc="assets/figma/modals/save_1.svg"
         [showIllustration]="true"
         (confirmed)="confirmarGrabacion()"
@@ -194,6 +202,40 @@ const SESSION_STORAGE_KEY = 'siaf.catalogo-versiones.session.v1';
     :host ::ng-deep siaf-breadcrumb nav { height: auto; min-height: 40px; padding-top: var(--sys-padding-base-md, 16px); padding-bottom: var(--sys-padding-base-md, 16px); }
     :host ::ng-deep siaf-page-header header { padding-top: var(--sys-padding-base-md, 16px); padding-bottom: var(--sys-padding-base-md, 16px); }
     :host ::ng-deep .proceso-seleccionado-bloqueado siaf-summary-card button { pointer-events: none; cursor: not-allowed; opacity: 0.45; }
+
+    /* La card vinculada conserva el componente del UI Kit, con una distribución propia para sus cuatro datos. */
+    :host ::ng-deep .version-vinculada-card siaf-summary-card section { align-items: flex-start; }
+    :host ::ng-deep .version-vinculada-card siaf-summary-card section > div {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+    }
+    :host ::ng-deep .version-vinculada-card siaf-summary-card section > div > div {
+      min-width: 0;
+      flex: none;
+    }
+    :host ::ng-deep .version-vinculada-card siaf-summary-card section > div > div > span,
+    :host ::ng-deep .version-vinculada-card siaf-summary-card section > div > div > div,
+    :host ::ng-deep .version-vinculada-card siaf-summary-card section > div > div > div > span {
+      height: auto;
+      overflow: visible;
+      text-overflow: clip;
+      white-space: normal;
+    }
+    :host ::ng-deep .version-vinculada-card siaf-summary-card section > div > div > div { align-items: flex-start; }
+    :host ::ng-deep .version-vinculada-card siaf-summary-card section > div > div > div > span { overflow-wrap: anywhere; }
+    :host ::ng-deep .version-vinculada-card siaf-summary-card section > div > div:nth-child(1) > div > span,
+    :host ::ng-deep .version-vinculada-card siaf-summary-card section > div > div:nth-child(3) > div > span {
+      overflow-wrap: normal;
+      white-space: nowrap;
+    }
+    :host ::ng-deep .version-vinculada-card siaf-summary-card section > button { align-self: flex-start; }
+
+    @media (min-width: 640px) {
+      :host ::ng-deep .version-vinculada-card siaf-summary-card section > div {
+        grid-template-columns: minmax(0, 8fr) minmax(0, 42fr) minmax(0, 8fr) minmax(0, 42fr);
+      }
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -245,6 +287,7 @@ export class CatalogoVersionesRegistroComponent {
   readonly anioValidado = signal(false);
   readonly codigoValidado = signal(false);
   readonly mensajeValidacion = signal('');
+  readonly alertaInactivacionCerrada = signal(false);
   readonly busquedaProceso = signal('');
   readonly procesoTemporalIds = signal<string[]>([]);
   readonly procesoSeleccionado = signal<ProcesoDemo | null>(this.esEdicion ? this.procesos.find(proceso => this.registroEdicion?.proceso.startsWith(`${proceso.codigo} `)) ?? null : null);
@@ -255,6 +298,8 @@ export class CatalogoVersionesRegistroComponent {
   readonly versionVinculadaTemporalIds = signal<string[]>([]);
   readonly alertaVersionVinculadaVisible = signal(false);
   readonly conflictoDisponible = signal<RegistroVersionState | null>(null);
+  readonly tituloConfirmacionGrabacion = computed(() => this.esEdicion ? '¿Desea guardar los cambios?' : '¿Está seguro de grabar la versión de presupuesto?');
+  readonly descripcionConfirmacionGrabacion = computed(() => this.esEdicion ? 'Los cambios realizados en la versión de presupuesto quedarán registrados.' : '');
   readonly tituloConfirmacionCancelacion = computed(() => this.esEdicion ? '¿Está seguro(a) de cancelar la modificación?' : '¿Está seguro(a) de cancelar el registro?');
   readonly descripcionConfirmacionCancelacion = computed(() => this.esEdicion ? 'Se perderán los cambios realizados.' : 'Se perderán los datos ingresados.');
   readonly procesosFiltrados = computed(() => {
@@ -301,6 +346,7 @@ export class CatalogoVersionesRegistroComponent {
   readonly definitiva = signal(this.registroEdicion?.definitiva ?? false);
   readonly disponible = signal(this.registroEdicion?.disponible ?? false);
   readonly estado = signal(this.registroEdicion?.estado.toLowerCase() ?? 'activo');
+  readonly edicionInactiva = computed(() => this.esEdicion && this.registroEdicion?.estado === 'Inactivo' && this.estado() === 'inactivo');
   readonly fechaDesde = signal(this.fechaParaInput(this.registroEdicion?.desde) ?? '');
   readonly fechaHasta = signal(this.fechaParaInput(this.registroEdicion?.hasta) ?? '');
   readonly fechaHastaPendienteDeCierre = computed(() =>
@@ -308,6 +354,23 @@ export class CatalogoVersionesRegistroComponent {
     && this.registroEdicion?.estado === 'Activo'
     && this.estado() === 'inactivo'
   );
+  readonly esReactivacion = computed(() =>
+    this.esEdicion
+    && this.registroEdicion?.estado === 'Inactivo'
+    && this.estado() === 'activo'
+  );
+  readonly condicionesDeInactivacion = computed(() => [
+    ...(this.vigente() ? ['Vigente'] : []),
+    ...(this.oficial() ? ['Oficial'] : []),
+    ...(this.definitiva() ? ['Definitiva'] : []),
+    ...(this.disponible() ? ['Disponible'] : []),
+  ]);
+  readonly mensajeConfirmacionInactivacion = computed(() => {
+    const condiciones = this.condicionesDeInactivacion();
+    const detalle = condiciones.length === 1 ? `la condición ${condiciones[0]}` : `las condiciones ${condiciones.join(', ')}`;
+    return `La versión tiene ${detalle}. Se procederá con su inactivación y se conservarán sus condiciones registradas.`;
+  });
+  readonly mostrarAlertaInactivacion = computed(() => this.requiereConfirmacionInactivacion() && !this.alertaInactivacionCerrada());
   readonly errorAnio = computed(() => this.errorDeCampo('anio'));
   readonly errorCodigo = computed(() => this.errorDeCampo('codigo'));
   readonly errorNombre = computed(() => this.errorDeCampo('nombre'));
@@ -388,6 +451,10 @@ export class CatalogoVersionesRegistroComponent {
   cambiarCodigo(value: string): void { this.codigo.set(value); this.codigoValidado.set(false); this.mensajeValidacion.set(''); }
   cambiarNombre(value: string): void { this.nombre.set(value); this.mensajeValidacion.set(''); }
   cambiarDescripcion(value: string): void { this.descripcion.set(value); this.mensajeValidacion.set(''); }
+  cambiarEstado(value: string): void {
+    this.estado.set(value);
+    this.alertaInactivacionCerrada.set(false);
+  }
   validarAnioAlSalir(): void {
     this.anioValidado.set(true);
     const mensaje = this.anio().trim() && !this.esAnioValido() ? 'El año debe ser un valor numérico de cuatro dígitos.' : '';
@@ -406,20 +473,24 @@ export class CatalogoVersionesRegistroComponent {
     const mensaje = this.validarParaGrabar();
     this.mensajeValidacion.set(mensaje);
     if (mensaje) return;
-    if (this.esEdicion) { this.confirmarGrabacion(); return; }
     this.confirmacionGrabacionAbierta.set(true);
   }
 
   cerrarConfirmacionGrabacion(): void { this.confirmacionGrabacionAbierta.set(false); }
+  cerrarAlertaInactivacion(): void { this.alertaInactivacionCerrada.set(true); }
 
   confirmarGrabacion(): void {
     if (this.grabando()) return;
     const mensaje = this.validarParaGrabar();
     this.mensajeValidacion.set(mensaje);
-    if (mensaje) { this.confirmacionGrabacionAbierta.set(false); return; }
+    if (mensaje) {
+      this.confirmacionGrabacionAbierta.set(false);
+      return;
+    }
     this.grabando.set(true);
     this.confirmacionGrabacionAbierta.set(false);
     const proceso = this.procesoSeleccionado()!;
+    const fechaOperacion = this.fechaRegistro();
     const registro: RegistroVersionState = {
       id: this.registroEdicion?.id ?? Date.now(),
       anio: this.anio().trim(),
@@ -434,11 +505,11 @@ export class CatalogoVersionesRegistroComponent {
       definitiva: this.definitiva(),
       disponible: this.disponible(),
       estado: this.estado() === 'inactivo' ? 'Inactivo' : 'Activo',
-      // En edición la vigencia es un dato histórico: se visualiza, pero no se modifica.
-      desde: this.esEdicion ? this.registroEdicion!.desde : this.fechaRegistro(),
+      // RN-GEN-028: una reactivación abre una nueva vigencia desde la fecha de operación.
+      desde: this.esEdicion ? (this.esReactivacion() ? fechaOperacion : this.registroEdicion!.desde) : fechaOperacion,
       hasta: this.esEdicion
-        ? (this.fechaHastaPendienteDeCierre() ? this.fechaRegistro() : this.registroEdicion!.hasta)
-        : (this.estado() === 'inactivo' ? this.fechaRegistro() : '-'),
+        ? (this.esReactivacion() ? '-' : (this.fechaHastaPendienteDeCierre() ? fechaOperacion : this.registroEdicion!.hasta))
+        : (this.estado() === 'inactivo' ? fechaOperacion : '-'),
       auditadoEn: new Date().toLocaleString('es-PE'),
       vinculada: this.versionVinculadaSeleccionada() ? {
         anio: this.versionVinculadaSeleccionada()!.anio,
@@ -472,12 +543,17 @@ export class CatalogoVersionesRegistroComponent {
     try {
       const registros = JSON.parse(sessionStorage.getItem(SESSION_STORAGE_KEY) ?? '[]');
       const normalizados = Array.isArray(registros) ? (registros as RegistroVersionState[]).map(registro => {
+        const desde = this.normalizarFechaDeVigencia(registro.desde);
+        const hasta = this.normalizarFechaDeVigencia(registro.hasta);
+        const activoConCierre = registro.estado === 'Activo' && hasta && hasta !== '-';
         return {
           ...registro,
           proceso: normalizarProcesoDemo(registro.proceso),
           ...(registro.anio === '2026' ? { anio: ANIO_DEMO } : {}),
-          desde: this.normalizarFechaDeVigencia(registro.desde),
-          hasta: this.normalizarFechaDeVigencia(registro.hasta),
+          // Una versión Activa no puede conservar una fecha de cierre. Si la sesión
+          // viene de una reactivación previa, su último cierre es la nueva vigencia.
+          desde: activoConCierre ? hasta : desde,
+          hasta: activoConCierre ? '-' : hasta,
           auditadoEn: registro.auditadoEn.replace('/2027', '/2026'),
           ...(registro.vinculada ? { vinculada: { ...registro.vinculada, proceso: normalizarProcesoDemo(registro.vinculada.proceso), ...(registro.vinculada.anio === '2026' ? { anio: ANIO_DEMO } : {}) } } : {}),
         };
@@ -540,6 +616,7 @@ export class CatalogoVersionesRegistroComponent {
     return String(mayor + 1);
   }
   private validarParaGrabar(): string {
+    if (this.edicionInactiva() && this.modificoDatosDeInactiva()) return 'No se pueden modificar los datos ni las condiciones de una versión inactiva. Reactívela para editarlos.';
     if (!this.procesoSeleccionado()) return 'Debe seleccionar un proceso.';
     if (!this.anio().trim() || !this.codigo().trim() || !this.nombre().trim() || !this.descripcion().trim()) return 'Debe completar los campos obligatorios.';
     if (this.descripcion().length > 500) return 'La descripción no puede exceder los 500 caracteres.';
@@ -564,6 +641,19 @@ export class CatalogoVersionesRegistroComponent {
     return '';
   }
 
+  private modificoDatosDeInactiva(): boolean {
+    const inicial = this.registroEdicion;
+    if (!inicial) return false;
+    const vinculada = this.versionVinculadaSeleccionada();
+    const mismaVinculada = (!vinculada && !inicial.vinculada) || (!!vinculada && !!inicial.vinculada
+      && vinculada.anio === inicial.vinculada.anio && vinculada.proceso === inicial.vinculada.proceso
+      && vinculada.codigo === inicial.vinculada.codigo && vinculada.nombre === inicial.vinculada.nombre);
+    return this.nombre().trim() !== inicial.nombre || this.descripcion().trim() !== inicial.descripcion
+      || this.editable() !== inicial.editable || this.pliego() !== inicial.pliego || this.vigente() !== inicial.vigente
+      || this.oficial() !== inicial.oficial || this.definitiva() !== inicial.definitiva || this.disponible() !== inicial.disponible
+      || !mismaVinculada;
+  }
+
   /** RN-GEN-0009: una baja no puede dejar activa una versión que la referencia. */
   private mensajeInactivacionBloqueada(): string {
     if (!this.esEdicion || this.registroEdicion?.estado !== 'Activo' || this.estado() !== 'inactivo') return '';
@@ -582,6 +672,14 @@ export class CatalogoVersionesRegistroComponent {
     return identificaciones.length === 1
       ? `No se puede inactivar la versión porque está vinculada a la versión activa ${identificaciones[0]}.`
       : `No se puede inactivar la versión porque está vinculada a las versiones activas ${identificaciones.join(', ')}.`;
+  }
+
+  /** RN-GEN-026: la baja de una versión activa con condiciones únicas requiere confirmación explícita. */
+  private requiereConfirmacionInactivacion(): boolean {
+    return this.esEdicion
+      && this.registroEdicion?.estado === 'Activo'
+      && this.estado() === 'inactivo'
+      && this.condicionesDeInactivacion().length > 0;
   }
   private limpiarMensajeValidacion(): void { this.conflictoDisponible.set(null); this.mensajeValidacion.set(''); }
   private tieneCambiosPendientes(): boolean {

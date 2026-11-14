@@ -672,8 +672,12 @@ export class CatalogoVersionesBandejaComponent implements OnDestroy {
 
     this.restaurarFiltrosDeSesion();
 
-    const registro = history.state?.['registroVersion'] as VersionRow | undefined;
-    if (registro) {
+    const registroDevuelto = history.state?.['registroVersion'] as VersionRow | undefined;
+    if (registroDevuelto) {
+      // El registro devuelto por el formulario llega después de cargar la sesión.
+      // Debe recibir la misma normalización para no reintroducir una vigencia activa
+      // con fecha de cierre persistida.
+      const registro = this.normalizarEscenarioDemo([registroDevuelto])[0];
       this.rows.update(rows => {
         const index = rows.findIndex(row => row.id === registro.id);
         return index >= 0 ? rows.map(row => row.id === registro.id ? registro : row) : [...rows, registro];
@@ -982,12 +986,12 @@ export class CatalogoVersionesBandejaComponent implements OnDestroy {
   esEdicionCondiciones(id: number): boolean { return this.filaEditandoCondiciones() === id; }
   puedeEditarCondiciones(row: VersionRow): boolean {
     const editingId = this.filaEditandoCondiciones();
-    return !this.guardandoCondiciones() && (editingId === null || editingId === row.id);
+    return row.estado === 'Activo' && !this.guardandoCondiciones() && (editingId === null || editingId === row.id);
   }
   valorCondicionEnEdicion(condition: ConditionKey): boolean { return this.borradorCondiciones()?.[condition] ?? false; }
   alternarEdicionCondiciones(row: VersionRow, event: Event): void {
     event.stopPropagation();
-    if (this.guardandoCondiciones()) return;
+    if (!this.puedeEditarCondiciones(row)) return;
     if (this.esEdicionCondiciones(row.id)) {
       if (this.puedeGrabarCondiciones(row)) this.confirmacionCancelacionCondicionesAbierta.set(true);
       else this.finalizarEdicionCondiciones();
@@ -1003,7 +1007,7 @@ export class CatalogoVersionesBandejaComponent implements OnDestroy {
   }
   actualizarCondicionDeFila(row: VersionRow, condition: ConditionKey, event: Event): void {
     event.stopPropagation();
-    if (!this.esEdicionCondiciones(row.id) || this.guardandoCondiciones()) return;
+    if (row.estado !== 'Activo' || !this.esEdicionCondiciones(row.id) || this.guardandoCondiciones()) return;
     const checked = (event.target as HTMLInputElement).checked;
     const draft = this.borradorCondiciones();
     if (!draft) return;
@@ -1019,7 +1023,7 @@ export class CatalogoVersionesBandejaComponent implements OnDestroy {
     this.errorCondiciones.set('');
   }
   puedeGrabarCondiciones(row: VersionRow): boolean {
-    if (!this.esEdicionCondiciones(row.id) || this.guardandoCondiciones()) return false;
+    if (row.estado !== 'Activo' || !this.esEdicionCondiciones(row.id) || this.guardandoCondiciones()) return false;
     const draft = this.borradorCondiciones();
     return !!draft && CONDITION_KEYS.some(key => draft[key] !== row[key]);
   }
@@ -1203,6 +1207,9 @@ export class CatalogoVersionesBandejaComponent implements OnDestroy {
   /** Migra sólo el escenario histórico de esta demostración al año centralizado. */
   private normalizarEscenarioDemo(filas: VersionRow[]): VersionRow[] {
     return filas.map(fila => {
+      const desde = this.normalizarFechaDeVigencia(fila.desde);
+      const hasta = this.normalizarFechaDeVigencia(fila.hasta);
+      const activoConCierre = fila.estado === 'Activo' && hasta && hasta !== '-';
       return {
         ...fila,
         proceso: normalizarProcesoDemo(fila.proceso),
@@ -1210,8 +1217,10 @@ export class CatalogoVersionesBandejaComponent implements OnDestroy {
         // operaciones realizadas durante 2026. Esta migración alcanza la
         // sesión ya abierta sin quitar altas ni preferencias del usuario.
         ...(fila.anio === '2026' ? { anio: ANIO_DEMO } : {}),
-        desde: this.normalizarFechaDeVigencia(fila.desde),
-        hasta: this.normalizarFechaDeVigencia(fila.hasta),
+        // RN-GEN-028: corrige sesiones de una reactivación ya grabada; una
+        // versión activa inicia la nueva vigencia el día de su último cierre.
+        desde: activoConCierre ? hasta : desde,
+        hasta: activoConCierre ? '-' : hasta,
         auditadoEn: fila.auditadoEn.replace('/2027', '/2026'),
         ...(fila.vinculada ? { vinculada: { ...fila.vinculada, proceso: normalizarProcesoDemo(fila.vinculada.proceso), ...(fila.vinculada.anio === '2026' ? { anio: ANIO_DEMO } : {}) } } : {}),
       };

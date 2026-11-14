@@ -9,6 +9,13 @@ import { CatalogoVersionesBandejaComponent } from './catalogo-versiones-bandeja.
 const FILTERS_STORAGE_KEY = 'siaf.catalogo-versiones.filters.v1';
 
 describe('CatalogoVersionesBandejaComponent', () => {
+  it('no permite editar condiciones de una versión inactiva', async () => {
+    const fixture = await TestBed.configureTestingModule({ imports: [CatalogoVersionesBandejaComponent], providers: [provideRouter([])] }).createComponent(CatalogoVersionesBandejaComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+    const row = { ...component.rows()[0], estado: 'Inactivo' };
+    expect(component.puedeEditarCondiciones(row)).toBeFalse();
+  });
   beforeEach(() => {
     sessionStorage.clear();
     history.replaceState({}, '', '/');
@@ -79,6 +86,21 @@ describe('CatalogoVersionesBandejaComponent', () => {
     expect(component.procesoFiltro()).toBe(PROCESO_FORMULACION);
   });
 
+  it('muestra una reactivación persistida como activa, con nueva fecha desde y sin fecha hasta', async () => {
+    sessionStorage.setItem('siaf.catalogo-versiones.session.v1', JSON.stringify(Array.from({ length: 4 }, (_, index) => ({
+      id: index + 1, anio: '2027', proceso: PROCESO_ASIGNACION, codigo: String(index + 1), nombre: `Versión ${index + 1}`,
+      descripcion: 'Registro persistido.', editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false,
+      estado: 'Activo', desde: '05/07/2026', hasta: index === 1 ? '14/11/2026' : '-', auditadoEn: '14/11/2026 08:00',
+    }))));
+
+    const component = await crearComponente();
+    const reactivada = component.rows().find(row => row.id === 2)!;
+
+    expect(reactivada.estado).toBe('Activo');
+    expect(reactivada.desde).toBe('14/11/2026');
+    expect(reactivada.hasta).toBe('-');
+  });
+
   it('aplica el proceso de una alta exitosa, reemplaza el anterior y conserva los demás filtros', async () => {
     sessionStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify({
       anio: '2027', proceso: PROCESO_ASIGNACION, codigo: '', nombre: '', estado: 'Activo',
@@ -140,6 +162,23 @@ describe('CatalogoVersionesBandejaComponent', () => {
     const component = await crearComponente();
 
     expect(component.procesoFiltro()).toBe(PROCESO_ASIGNACION);
+  });
+
+  it('normaliza también cualquier versión devuelta por el formulario, sin depender de su código', async () => {
+    history.replaceState({
+      edicionVersion: true,
+      registroVersion: {
+        id: 2, anio: '2027', proceso: PROCESO_ASIGNACION, codigo: '2', nombre: 'Versión reactivada', descripcion: 'Registro devuelto por edición.',
+        editable: false, pliego: false, vigente: false, oficial: false, definitiva: false, disponible: false,
+        estado: 'Activo', desde: '05/07/2026', hasta: '14/11/2026', auditadoEn: '14/11/2026 08:00',
+      },
+    }, '', '/');
+
+    const component = await crearComponente();
+    const reactivada = component.rows().find(row => row.id === 2)!;
+
+    expect(reactivada.desde).toBe('14/11/2026');
+    expect(reactivada.hasta).toBe('-');
   });
 
   it('bloquea los controles de la bandeja mientras edita condiciones y los libera al cancelar', async () => {
